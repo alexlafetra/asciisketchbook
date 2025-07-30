@@ -1,39 +1,14 @@
 html{
-    overflow:hidden;
-    background-color:transparent;
+    /* overflow:hidden; */
+    background-color:black;
 }
 
 .ascii_canvas{
-    width:fit-content;
-    height:fit-content;
     display:block;
     margin:auto;
-    white-space: pre;
+    white-space: pre-wrap;
     line-height: 1.15;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-}
-
-.normal_character{
-    color:black;
-    font-size:12pt;
-    cursor:pointer;
-    /* background-color: #ffffdd; */
-}
-.blank_character{
-    cursor:pointer;
-}
-.normal_character:hover{
-    background-color: aqua;
-}
-.blank_character:hover{
-    background-color: aqua;
-}
-
-.active_character{
-    color:black;
-    font-size:12pt;
-    background-color: #a1a1ff;
 }
 .ascii_button{
     color:black;
@@ -45,4 +20,26 @@ html{
 }
 .ascii_button:hover{
     background-color:#ffff00ff;
+}
+.color_picker{
+    width:100%;
+    height:100px;
+}
+.color_picker .react-colorful{
+    width: 10px;
+    height: 80px;
+    border-radius:0px;
+}
+.color_picker .react-colorful__hue {
+    height: 10px;
+    border-radius:0px;
+    border:none;
+}
+/* Custom poiners */
+.color_picker .react-colorful__saturation-pointer {
+    width: 15px;
+    height: 15px;
+    border-radius: 0px;
+    border:none;
+    /* border-color:black; */
 }

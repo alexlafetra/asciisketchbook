@@ -1,46 +1,77 @@
-import { useState , useEffect} from 'react'
+import { useState , useEffect , useRef} from 'react'
 import React from 'react'
+import ColorPicker from './components/colorpicker';
 import './App.css'
 import './main.css';
 
 
 function App() {
+
   const settings = {
     pixelDensity : 1,
     canvasWidth : window.innerWidth,
     canvasHeight : window.innerHeight,
     rows:25,
     columns:50,
-    fontSize : 12,
-    characterColor : '#0000ffff',
-    characterBackground : '#ffffffff',
-    activeHighlight : '#ffff00ff',
-    blankBackground : '#ffffffff',
+    fontSize : 20,
+    backgroundColor:'#0099ff',
+    textColor : '#0000ff',
+    activeHighlight : '#ffff00',
     advanceWhenCharacterEntered : false,
   }
 
   const house = `                                                                                                                               #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                             |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ############+###/====   \\) ^  ##7 7                 ###########\\##|====== |# ) _^ 7                     ##########\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `;
-  let canvasData = '';
-  for(let i = 0; i<settings.rows*settings.columns; i++){
-    canvasData+=' ';
-  }
+  let canvasData = house;
+  //holds the processed jsx children
+  const [divContents,setDivContents] = useState(canvasData);
+  const [activeCharIndex,setActiveCharIndex] = useState(0);
+  const [backgroundColor,setBackgroundColor] = useState(settings.backgroundColor);
+  const [textColor,setTextColor] = useState(settings.textColor);
+  const activeCharIndexRef = useRef(activeCharIndex);
+  const divContentsRef = useRef(divContents);
 
-  let activeCharacter = 0;
+  //making sure the callback can access "fresh" versions of state data
+  useEffect(() => {
+    activeCharIndexRef.current = activeCharIndex;
+  }, [activeCharIndex]);
+
+  useEffect(() => {
+    divContentsRef.current = divContents;
+  }, [divContents]);
+
+  //add keypress event handlers, but only once
+  useEffect(() => {
+    window.document.addEventListener('keyup', handleKeyPress);
+    return () => {
+      window.document.removeEventListener('keyup', handleKeyPress);
+    }
+  }, []);
+
+  // for(let i = 0; i<settings.rows*settings.columns; i++){
+  //   canvasData+=' ';
+  // }
 
   function handleClick(e){
-    //stop the event from bubbling, so this is only called once
-    // e.stopPropagation();
-    activeCharacter = parseInt(e.target.getAttribute("string-index"));
-    setActiveCharIndex(activeCharacter);
-    setDivContents(processStringIntoDom(canvasData,activeCharacter,settings));
+    const clickCoords = {
+      x:e.clientX - e.target.offsetLeft,
+      y:e.clientY - e.target.offsetTop
+    };
+    //px per char
+    const characterDims = {
+      width : e.target.clientWidth / settings.columns,
+      height : e.target.clientHeight / settings.rows,
+    };
+
+    const newIndex = Math.trunc(clickCoords.x/characterDims.width)+settings.columns*Math.trunc(clickCoords.y/characterDims.height);
+    setActiveCharIndex(newIndex);
   }
 
-  function setCharacter(index,char){
+  function setCharacter(index,char,data){
     //set active character
-    canvasData = canvasData.substring(0,index)+char+canvasData.substring(index+1);
+    setDivContents(data.substring(0,index)+char+data.substring(index+1));
   }
 
-  function shiftCharacters(index,amount){
+  function shiftCharacters(index,amount,data){
     let insertStr = '';
     const rowStartIndex = Math.trunc(index/settings.columns)*(settings.columns);
     const moveAmt = Math.min(amount<0?(settings.columns - index%settings.columns):(settings.columns - (index%settings.columns)),Math.abs(amount));
@@ -48,11 +79,11 @@ function App() {
       insertStr += ' ';
     }
     if(amount<0)
-      canvasData = canvasData.substring(0,index)+canvasData.substring(index+moveAmt,rowStartIndex+settings.columns)+insertStr+canvasData.substring(rowStartIndex+settings.columns);
+      setDivContents(data.substring(0,index)+data.substring(index+moveAmt,rowStartIndex+settings.columns)+insertStr+data.substring(rowStartIndex+settings.columns));
     else
-      canvasData = canvasData.substring(0,index)+insertStr+canvasData.substring(index,rowStartIndex+settings.columns-moveAmt)+canvasData.substring(rowStartIndex+settings.columns);
+      setDivContents(data.substring(0,index)+insertStr+data.substring(index,rowStartIndex+settings.columns-moveAmt)+data.substring(rowStartIndex+settings.columns));
   }
-  function newLine(index,amount){
+  function newLine(index,amount,data){
     const rowStartIndex = Math.trunc(index/settings.columns)*(settings.columns);
     let insertStr = '';
     for(let i = 0; i<settings.columns; i++){
@@ -61,27 +92,27 @@ function App() {
     const moveAmt = Math.min(amount>0?settings.rows:(rowStartIndex/settings.columns),Math.abs(amount))
     if(amount>0){
       for(let i = 0; i<moveAmt; i++){
-        canvasData = canvasData.substring(0,rowStartIndex)+insertStr+canvasData.substring(rowStartIndex,canvasData.length-settings.columns*moveAmt);
+        setDivContents(data.substring(0,rowStartIndex)+insertStr+data.substring(rowStartIndex,data.length-settings.columns*moveAmt));
       }
     }
     else{
       for(let i = 0; i<moveAmt; i++){
-        canvasData = canvasData.substring(0,rowStartIndex)+canvasData.substring(rowStartIndex+settings.columns*moveAmt)+insertStr;
+        setDivContents(data.substring(0,rowStartIndex)+data.substring(rowStartIndex+settings.columns*moveAmt)+insertStr);
       }
     }
   }
-  function moveColumn(index,amount){
+  function moveColumn(index,amount,data){
     const rowIndex = Math.trunc(index/settings.columns);
     const colIndex = index % settings.columns;
     if(amount>0){
       for(let i = (settings.rows); i>rowIndex; i--){
-        setCharacter(i*settings.columns+colIndex,canvasData.charAt((i-1)*settings.columns+colIndex));
+        setCharacter(i*settings.columns+colIndex,data.charAt((i-1)*settings.columns+colIndex),data);
       }
       setCharacter(rowIndex*settings.columns+colIndex,' ');
     }
     else{
       for(let i = rowIndex; i<(settings.rows-1); i++){
-        setCharacter(i*settings.columns+colIndex,canvasData.charAt((i+1)*settings.columns+colIndex));
+        setCharacter(i*settings.columns+colIndex,data.charAt((i+1)*settings.columns+colIndex),data);
       }
     }
   }
@@ -89,98 +120,84 @@ function App() {
   function handleKeyPress(e){
     //stop the event from bubbling, so this is only called once
     e.stopPropagation();
+    //get fresh copies of the state data when this callback is fired
+    const index = activeCharIndexRef.current;
+    const textData = divContentsRef.current;
+
     //janky way to see if it's a letter
     if(e.key.length === 1){
-      setCharacter(activeCharacter,e.key);
-      if(settings.advanceWhenCharacterEntered && (activeCharacter%settings.columns)<(settings.columns-1)){
-        activeCharacter++;
+      setCharacter(index,e.key,textData);
+      if(settings.advanceWhenCharacterEntered && (index%settings.columns)<(settings.columns-1)){
+        setActiveCharIndex(index+1);
       }
     }
     else if(e.key === 'Backspace'){
-      setCharacter(activeCharacter,' ');
+      setCharacter(index,' ',textData);
     }
     else if(e.key === 'ArrowRight'){
       if(e.shiftKey)
-        shiftCharacters(activeCharacter,1);
-      else if((activeCharacter%settings.columns)<(settings.columns-1))
-        activeCharacter++;
+        shiftCharacters(index,1,textData);
+      else if((index%settings.columns)<(settings.columns-1)){
+        setActiveCharIndex(index+1);
+      }
     }
     else if(e.key === 'ArrowLeft'){
       if(e.shiftKey)
-        shiftCharacters(activeCharacter,-1);
-      else if((activeCharacter%settings.columns)>0)
-        activeCharacter--;
+        shiftCharacters(index,-1,textData);
+      else if((index%settings.columns)>0)
+        setActiveCharIndex(index-1);
 
     }
     else if(e.key === 'ArrowUp'){
       if(e.shiftKey)
-        moveColumn(activeCharacter,-1);
-      else if(activeCharacter/settings.columns>=1){
-        activeCharacter-=settings.columns;
+        moveColumn(index,-1,textData);
+      else if(index/settings.columns>=1){
+        setActiveCharIndex(index-settings.columns);
       }
     }
     else if(e.key === 'ArrowDown'){
       if(e.shiftKey)
-        moveColumn(activeCharacter,1);
-      else if(activeCharacter/settings.columns<settings.rows-1){
-        activeCharacter+=settings.columns;
+        moveColumn(index,1,textData);
+      else if(index/settings.columns<(settings.rows-1)){
+        setActiveCharIndex(index+settings.columns);
       }
     }
     else if(e.key == 'Enter'){
       if(e.shiftKey)
-        newLine(activeCharacter,-1);
+        newLine(index,-1,textData);
       else
-        newLine(activeCharacter,1);
+        newLine(index,1,textData);
     }
-    setDivContents(processStringIntoDom(canvasData,activeCharacter,settings));
   }
 
-  const processStringIntoDom = (data,active,appSettings) => {
-    const children = [];
-    let char = 0;
-    for(let row = 0; row<appSettings.rows; row++){
-      let rowChildren = [];
-      for(let column = 0; column<appSettings.columns; column++){
-        //if you're out of characters, break
-        if(char >= data.length){
-          break;
-        }
-        //if you hit the active character
-        else if(char == active){
-          rowChildren.push(<span key = {char} id = {char} string-index = {char} className = "active_character" style = {{backgroundColor:settings.activeHighlight,color:settings.characterColor}}>{data.charAt(char)}</span>);
-        }
-        else{
-          rowChildren.push(<span key = {char} id = {char} string-index = {char} className = {(data.charAt(char) === ' ')?"blank_character":"normal_character"} style = {{color:settings.characterColor,backgroundColor:((data.charAt(char) === ' ')?settings.blankBackground:settings.characterBackground)}} onMouse = {handleClick}>{data.charAt(char)}</span>);
-        }
-        char++;
-      }
-      children.push(rowChildren);
-      children.push(<br key = {"row"+row}></br>);
+  //adds in \n characters and a <span> container for the highlighted text
+  function processText(data){
+    let finalString = '';
+    for(let row = 0; row<settings.rows; row++){
+      finalString += data.substring(row*settings.columns,(row+1)*settings.columns)+'\n';
     }
-    return children;
+    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/settings.columns)),<span className = "active_character" style = {{backgroundColor:settings.activeHighlight}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/settings.columns))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/settings.columns)+1)];
+    return finalString;
   }
 
-  //add keypress event handlers, but only once
-  useEffect(() => {
-    window.document.addEventListener('keyup', handleKeyPress);
-
-    return () => {
-      window.document.removeEventListener('keyup', handleKeyPress);
-    }
-  }, []);
-
-  //holds the processed jsx children
-  const [divContents,setDivContents] = useState(processStringIntoDom(canvasData,activeCharacter,settings));
-  const [activeCharIndex,setActiveCharIndex] = useState(0);
   return (
     <>
-    <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(canvasData);}}>copy</div>
-    <div className = "ascii_button" onClick = {(e) => {canvasData=``;
-    for(let i = 0; i<settings.rows*settings.columns; i++){
-      canvasData+=' ';
-    }setDivContents(processStringIntoDom(canvasData,activeCharacter,settings));}}>clear</div>
-    <div className = "ascii_canvas">
-      {divContents}
+    {/* controls */}
+    <div className = "ui_container" style = {{width:200,display:'block'}}>
+      <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy</div>
+      <div className = "ascii_button" onClick = {(e) => {canvasData=``;
+      for(let i = 0; i<settings.rows*settings.columns; i++){
+        canvasData+=' ';
+      }setDivContents(canvasData);}}>clear</div>
+      <input type="color" id="head" name="head" onChange = {(e) => {setBackgroundColor(e.target.value);}}value={backgroundColor} />
+      <input type="color" id="head" name="head" onChange = {(e) => {setTextColor(e.target.value);}}value={textColor} />
+      {/* <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker> */}
+      {/* <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker> */}
+      {/* canvas */}
+    </div>
+
+    <div className = "ascii_canvas" onClick = {handleClick} style = {{cursor:'pointer',fontSize:settings.fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
+      {processText(divContents)}
     </div>
     </>
   )
