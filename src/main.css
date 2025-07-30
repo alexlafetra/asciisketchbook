@@ -1,0 +1,48 @@
+html{
+    overflow:hidden;
+    background-color:transparent;
+}
+
+.ascii_canvas{
+    width:fit-content;
+    height:fit-content;
+    display:block;
+    margin:auto;
+    white-space: pre;
+    line-height: 1.15;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+}
+
+.normal_character{
+    color:black;
+    font-size:12pt;
+    cursor:pointer;
+    /* background-color: #ffffdd; */
+}
+.blank_character{
+    cursor:pointer;
+}
+.normal_character:hover{
+    background-color: aqua;
+}
+.blank_character:hover{
+    background-color: aqua;
+}
+
+.active_character{
+    color:black;
+    font-size:12pt;
+    background-color: #a1a1ff;
+}
+.ascii_button{
+    color:black;
+    background-color:white;
+    width:fit-content;
+    display:block;
+    cursor:pointer;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.ascii_button:hover{
+    background-color:#ffff00ff;
+}
