@@ -1,6 +1,7 @@
 import { useState , useEffect , useRef} from 'react'
 import React from 'react'
 import ColorPicker from './components/colorpicker';
+import Slider from './components/slider';
 import './App.css'
 import './main.css';
 
@@ -13,22 +14,40 @@ function App() {
     canvasHeight : window.innerHeight,
     rows:25,
     columns:50,
-    fontSize : 20,
-    backgroundColor:'#0099ff',
+    fontSize : 12,
+    backgroundColor:'#ffffff',
     textColor : '#0000ff',
     activeHighlight : '#ffff00',
     advanceWhenCharacterEntered : false,
+    presets : {
+      house: {
+        title: 'house',
+        data : `                                                                                                                               #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                             |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                     #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
+        rows : 25,
+        columns : 50
+      },
+    },
   }
-
-  const house = `                                                                                                                               #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                             |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ############+###/====   \\) ^  ##7 7                 ###########\\##|====== |# ) _^ 7                     ##########\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `;
-  let canvasData = house;
+  
+  let canvasData = settings.presets.house.data;
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
+  const [bufferCanvas,setBufferCanvas] = useState(canvasData);
+  const [currentChar,setCurrentChar] = useState('a');
   const [activeCharIndex,setActiveCharIndex] = useState(0);
   const [backgroundColor,setBackgroundColor] = useState(settings.backgroundColor);
   const [textColor,setTextColor] = useState(settings.textColor);
+  const [fontSize,setFontSize] = useState(settings.fontSize);
+  const [lineData,setLineData] = useState({
+    begun : false,
+    moved : false,
+    startIndex : 0,
+    endIndex : 0,
+    char : currentChar
+  });
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
+  const lineDataRef = useRef(lineData);
 
   //making sure the callback can access "fresh" versions of state data
   useEffect(() => {
@@ -38,6 +57,10 @@ function App() {
   useEffect(() => {
     divContentsRef.current = divContents;
   }, [divContents]);
+
+  useEffect(() => {
+    lineDataRef.current = lineData;
+  },[lineData]);
 
   //add keypress event handlers, but only once
   useEffect(() => {
@@ -51,10 +74,111 @@ function App() {
   //   canvasData+=' ';
   // }
 
+  function createBackground(){
+    let str = ``;
+    str.padStart(settings.columns,' ');
+    str = '|'+str+'|';
+    for(let i = 0; i<settings.rows; i++){
+      str += str +'\n';
+    }
+    let top = ``;
+    top.padStart(settings.columns,'-');
+    top = '+'+top+'+';
+    return top+'\n'+str+top;
+  }
+
+  function startLine(index){
+    const line = {
+      begun : true,
+      moved : false,
+      startIndex : index,
+      endIndex : null,
+      char : currentChar
+    }
+    setLineData(line);
+    //store a copy of div contents in buffer canvas, so you can draw arbitrary lines on top of divContents w/o loosing anything
+    setBufferCanvas(divContents);
+  }
+  function endLine(endIndex){
+    const start = {x:lineData.startIndex%settings.columns,y:Math.trunc(lineData.startIndex/settings.columns)};
+    const end = {x:endIndex%settings.columns,y:Math.trunc(endIndex/settings.columns)};
+    const line = {
+      begun : false,
+      moved : false,
+      startIndex : lineData.startIndex,
+      endIndex : endIndex,
+      char : currentChar
+    };
+    const tempCanvas = bufferCanvas;
+    setLineData(line);
+    setDivContents(drawLine(start,end,currentChar,tempCanvas));
+    setBufferCanvas(divContents);
+  }
+
+  function getClickIndex(e){
+    const clickCoords = {
+      x:e.pageX - e.target.offsetLeft,
+      y:e.pageY - e.target.offsetTop
+    };
+    //px per char
+    const characterDims = {
+      width : e.target.clientWidth / settings.columns,
+      height : e.target.clientHeight / settings.rows,
+    };
+
+    return Math.trunc(clickCoords.x/characterDims.width)+settings.columns*Math.trunc(clickCoords.y/characterDims.height);
+  }
+
+  function handleMouseUp(e){
+    const newIndex = getClickIndex(e);
+    if(lineData.begun){
+      if(lineData.moved){
+        endLine(newIndex);
+      }
+      else{
+        const line = {
+          begun : false,
+          moved : false,
+          startIndex : lineData.startIndex,
+          endIndex : null,
+          char : currentChar
+        };
+        setLineData(line);
+      }
+    }
+  }
+
+  function handleMouseDown(e){
+    const newIndex = getClickIndex(e);
+    startLine(newIndex);
+  }
+  function handleMouseMove(e){
+    if(lineData.begun){
+      const newIndex = getClickIndex(e);
+      //if the index didn't change, you haven't moved
+      if(newIndex === lineData.startIndex){
+        return;
+      }
+      const tempCanvas = bufferCanvas;
+      const start = {x:lineData.startIndex%settings.columns,y:Math.trunc(lineData.startIndex/settings.columns)};
+      const coords = {x:newIndex%settings.columns,y:Math.trunc(newIndex/settings.columns)};
+      
+      const line = {
+        begun : true,
+        moved : true,
+        startIndex : lineData.startIndex,
+        endIndex : newIndex,
+        char : currentChar
+      };
+      setLineData(line);
+      setDivContents(drawLine(start,coords,currentChar,tempCanvas));
+    }
+  }
+
   function handleClick(e){
     const clickCoords = {
-      x:e.clientX - e.target.offsetLeft,
-      y:e.clientY - e.target.offsetTop
+      x:e.pageX - e.target.offsetLeft,
+      y:e.pageY - e.target.offsetTop
     };
     //px per char
     const characterDims = {
@@ -69,6 +193,51 @@ function App() {
   function setCharacter(index,char,data){
     //set active character
     setDivContents(data.substring(0,index)+char+data.substring(index+1));
+  }
+
+  function writeCharacter(index,char,data){
+    return data.substring(0,index)+char+data.substring(index+1);
+  }
+
+
+  function drawLine(start,end,char,canvas){
+    const steep = Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+    if (steep) {
+      [start.x, start.y] = [start.y,start.x];
+      [end.x, end.y] = [end.y,end.x];
+    }
+
+    if (start.x > end.x) {
+      [start.x, end.x] = [end.x,start.x];
+      [start.y, end.y] = [end.y,start.y];
+    }
+
+    let dx, dy;
+    dx = end.x - start.x;
+    dy = Math.abs(end.y - start.y);
+
+    let err = Math.trunc(dx / 2);
+    let ystep;
+
+    if (start.y < end.y) {
+      ystep = 1;
+    } else {
+      ystep = -1;
+    }
+    let y = start.y;
+    for (let x = start.x; x <= end.x; x++) {
+      if (steep) {
+        canvas = writeCharacter(x*settings.columns+y, char, canvas);
+      } else {
+        canvas = writeCharacter(y*settings.columns+x, char, canvas);
+      }
+      err -= dy;
+      if (err < 0) {
+        y += ystep;
+        err += dx;
+      }
+    }
+    return canvas;
   }
 
   function shiftCharacters(index,amount,data){
@@ -101,6 +270,7 @@ function App() {
       }
     }
   }
+
   function moveColumn(index,amount,data){
     const rowIndex = Math.trunc(index/settings.columns);
     const colIndex = index % settings.columns;
@@ -123,13 +293,18 @@ function App() {
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
     const textData = divContentsRef.current;
+    const line = lineDataRef.current;
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
-      setCharacter(index,e.key,textData);
-      if(settings.advanceWhenCharacterEntered && (index%settings.columns)<(settings.columns-1)){
-        setActiveCharIndex(index+1);
+      //if you're not drawing a line, set the active char
+      if(!line.begun){
+        setCharacter(index,e.key,textData);
+        if(settings.advanceWhenCharacterEntered && (index%settings.columns)<(settings.columns-1)){
+          setActiveCharIndex(index+1);
+        }
       }
+      setCurrentChar(e.key);
     }
     else if(e.key === 'Backspace'){
       setCharacter(index,' ',textData);
@@ -180,25 +355,35 @@ function App() {
     return finalString;
   }
 
+  const asciiDisplayStyle = {
+    display:'block',
+    width : 'fit-content',
+    height : 'fit-content',
+    transform:'scale(3,1)',
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    fontSize:'40px',
+    backgroundColor:'#ffff00ff',
+  }
+
   return (
     <>
+    {/* canvas */}
+    <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
+      {processText(divContents)}
+    </div>
     {/* controls */}
-    <div className = "ui_container" style = {{width:200,display:'block'}}>
+    <div className = "ui_container" style = {{display:'block'}}>
+      <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar}</div>
       <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy</div>
       <div className = "ascii_button" onClick = {(e) => {canvasData=``;
       for(let i = 0; i<settings.rows*settings.columns; i++){
         canvasData+=' ';
       }setDivContents(canvasData);}}>clear</div>
-      <input type="color" id="head" name="head" onChange = {(e) => {setBackgroundColor(e.target.value);}}value={backgroundColor} />
-      <input type="color" id="head" name="head" onChange = {(e) => {setTextColor(e.target.value);}}value={textColor} />
-      {/* <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker> */}
-      {/* <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker> */}
-      {/* canvas */}
+      <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
+      <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+      <Slider label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={fontSize} min = {1} max = {30}></Slider>
     </div>
-
-    <div className = "ascii_canvas" onClick = {handleClick} style = {{cursor:'pointer',fontSize:settings.fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
-      {processText(divContents)}
-    </div>
+    <div className = "canvas_border">{}</div>
     </>
   )
 }

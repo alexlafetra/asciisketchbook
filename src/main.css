@@ -1,9 +1,19 @@
 html{
     /* overflow:hidden; */
-    background-color:black;
+    background-color:transparent;
+    height:100%;
+}
+body {
+    height:100%;
+    padding: 0;
+    margin: 0;
+    display:flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .ascii_canvas{
+    justify-content: center;
     display:block;
     margin:auto;
     white-space: pre-wrap;
@@ -21,9 +31,11 @@ html{
 .ascii_button:hover{
     background-color:#ffff00ff;
 }
-.color_picker{
-    width:100%;
-    height:100px;
+.control_label{
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.control_label:hover{
+    background-color:#ffff00ff;
 }
 .color_picker .react-colorful{
     width: 10px;
@@ -42,4 +54,7 @@ html{
     border-radius: 0px;
     border:none;
     /* border-color:black; */
+}
+.slider_container{
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
