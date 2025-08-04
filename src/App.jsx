@@ -15,6 +15,8 @@ function App() {
     rows:25,
     columns:50,
     fontSize : 12,
+    textSpacing : 0,
+    lineHeight : 1.15,
     backgroundColor:'#ffffff',
     textColor : '#0000ff',
     activeHighlight : '#ffff00',
@@ -22,14 +24,14 @@ function App() {
     presets : {
       house: {
         title: 'house',
-        data : `                                                                                                                               #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                             |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                     #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
+        data : `                                                                                                                                                                                                                                   #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                 .           |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                 '   #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
         rows : 25,
         columns : 50
       },
     },
   }
   
-  let canvasData = settings.presets.house.data;
+  let canvasData = settings.presets.house.data.padStart(settings.rows*settings.columns,' ');
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
   const [bufferCanvas,setBufferCanvas] = useState(canvasData);
@@ -38,6 +40,8 @@ function App() {
   const [backgroundColor,setBackgroundColor] = useState(settings.backgroundColor);
   const [textColor,setTextColor] = useState(settings.textColor);
   const [fontSize,setFontSize] = useState(settings.fontSize);
+  const [textSpacing,setTextSpacing] = useState(settings.textSpacing);
+  const [lineHeight,setLineHeight] = useState(settings.lineHeight);
   const [lineData,setLineData] = useState({
     begun : false,
     moved : false,
@@ -48,6 +52,7 @@ function App() {
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
+  const bufferCanvasRef = useRef(bufferCanvas);
 
   //making sure the callback can access "fresh" versions of state data
   useEffect(() => {
@@ -62,6 +67,10 @@ function App() {
     lineDataRef.current = lineData;
   },[lineData]);
 
+  useEffect(() => {
+    bufferCanvasRef.current = bufferCanvas;
+  },[bufferCanvas]);
+
   //add keypress event handlers, but only once
   useEffect(() => {
     window.document.addEventListener('keyup', handleKeyPress);
@@ -75,15 +84,16 @@ function App() {
   // }
 
   function createBackground(){
-    let str = ``;
-    str.padStart(settings.columns,' ');
-    str = '|'+str+'|';
+    let side = '';
+    side = side.padStart(settings.columns,' ');
+    side = '|'+side+'|';
+    let str = '';
     for(let i = 0; i<settings.rows; i++){
-      str += str +'\n';
+      str += side +'\n';
     }
-    let top = ``;
-    top.padStart(settings.columns,'-');
-    top = '+'+top+'+';
+    let top = '';
+    top = top.padStart(settings.columns,'-');
+    top = '*'+top+'*';
     return top+'\n'+str+top;
   }
 
@@ -109,16 +119,17 @@ function App() {
       endIndex : endIndex,
       char : currentChar
     };
-    const tempCanvas = bufferCanvas;
+    let tempCanvas = bufferCanvas;
+    tempCanvas = drawLine(start,end,currentChar,tempCanvas);
     setLineData(line);
-    setDivContents(drawLine(start,end,currentChar,tempCanvas));
-    setBufferCanvas(divContents);
+    setDivContents(tempCanvas);
+    setBufferCanvas(tempCanvas);
   }
 
   function getClickIndex(e){
     const clickCoords = {
-      x:e.pageX - e.target.offsetLeft,
-      y:e.pageY - e.target.offsetTop
+      x:e.clientX - e.target.offsetParent.offsetLeft,
+      y:e.clientY - e.target.offsetParent.offsetTop
     };
     //px per char
     const characterDims = {
@@ -149,8 +160,11 @@ function App() {
   }
 
   function handleMouseDown(e){
-    const newIndex = getClickIndex(e);
-    startLine(newIndex);
+    //if shifting, then start drawing a line
+    if(e.shiftKey){
+      const newIndex = getClickIndex(e);
+      startLine(newIndex);
+    }
   }
   function handleMouseMove(e){
     if(lineData.begun){
@@ -176,17 +190,7 @@ function App() {
   }
 
   function handleClick(e){
-    const clickCoords = {
-      x:e.pageX - e.target.offsetLeft,
-      y:e.pageY - e.target.offsetTop
-    };
-    //px per char
-    const characterDims = {
-      width : e.target.clientWidth / settings.columns,
-      height : e.target.clientHeight / settings.rows,
-    };
-
-    const newIndex = Math.trunc(clickCoords.x/characterDims.width)+settings.columns*Math.trunc(clickCoords.y/characterDims.height);
+    const newIndex = getClickIndex(e);
     setActiveCharIndex(newIndex);
   }
 
@@ -294,6 +298,7 @@ function App() {
     const index = activeCharIndexRef.current;
     const textData = divContentsRef.current;
     const line = lineDataRef.current;
+    const bufCanvas = bufferCanvasRef.current;
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
@@ -303,6 +308,21 @@ function App() {
         if(settings.advanceWhenCharacterEntered && (index%settings.columns)<(settings.columns-1)){
           setActiveCharIndex(index+1);
         }
+      }
+      //if you are drawing a line, redraw it with the new character
+      else if(line.moved){
+        const tempCanvas = bufCanvas;
+        const startCoords = {x:line.startIndex%settings.columns,y:Math.trunc(line.startIndex/settings.columns)};
+        const endCoords = {x:line.endIndex%settings.columns,y:Math.trunc(line.endIndex/settings.columns)};
+        const newL = {
+          begun : true,
+          moved : true,
+          startIndex : line.startIndex,
+          endIndex : line.endIndex,
+          char : e.key
+        };
+        setLineData(newL);
+        setDivContents(drawLine(startCoords,endCoords,e.key,tempCanvas));
       }
       setCurrentChar(e.key);
     }
@@ -351,11 +371,12 @@ function App() {
     for(let row = 0; row<settings.rows; row++){
       finalString += data.substring(row*settings.columns,(row+1)*settings.columns)+'\n';
     }
-    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/settings.columns)),<span className = "active_character" style = {{backgroundColor:settings.activeHighlight}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/settings.columns))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/settings.columns)+1)];
+    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/settings.columns)),<span key = '1' className = "active_character" style = {{backgroundColor:settings.activeHighlight}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/settings.columns))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/settings.columns)+1)];
     return finalString;
   }
 
   const asciiDisplayStyle = {
+    zIndex : 2,
     display:'block',
     width : 'fit-content',
     height : 'fit-content',
@@ -363,27 +384,36 @@ function App() {
     fontFamily: 'Arial, Helvetica, sans-serif',
     fontSize:'40px',
     backgroundColor:'#ffff00ff',
+    color:'#0000ff'
   }
 
   return (
     <>
-    {/* canvas */}
-    <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
-      {processText(divContents)}
-    </div>
-    {/* controls */}
-    <div className = "ui_container" style = {{display:'block'}}>
-      <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar}</div>
-      <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy</div>
-      <div className = "ascii_button" onClick = {(e) => {canvasData=``;
-      for(let i = 0; i<settings.rows*settings.columns; i++){
-        canvasData+=' ';
-      }setDivContents(canvasData);}}>clear</div>
-      <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
-      <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
-      <Slider label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={fontSize} min = {1} max = {30}></Slider>
-    </div>
-    <div className = "canvas_border">{}</div>
+      {/* canvas */}
+      <div className = "canvas_container" style = {{lineHeight:lineHeight,letterSpacing:textSpacing+'px'}}>
+        <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
+          {processText(divContents)}
+        </div>
+        <div className = "canvas_background" style = {{fontSize:fontSize+'px',width: settings.columns+2+'ch'}}>
+          {createBackground()}
+        </div>
+      </div>
+      {/* controls */}
+      <div className = "ui_container" style = {{display:'block'}}>
+        <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
+        <div className = 'help_text'>(shift+click) lines</div>
+        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText(divContents));}}>copy (multiline)</div>
+        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy (single line)</div>
+        <div className = "ascii_button" onClick = {(e) => {canvasData=``;
+        for(let i = 0; i<settings.rows*settings.columns; i++){
+          canvasData+=' ';
+        }setDivContents(canvasData);}}>clear</div>
+        <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
+        <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
+        <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'line height'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
+      </div>
     </>
   )
 }

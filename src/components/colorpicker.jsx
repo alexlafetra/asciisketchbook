@@ -12,10 +12,10 @@ function ColorPicker({label,callback,defaultValue}){
     }
 
     return(
-        <div className = "color_picker_container" style = {{cursor:'pointer',width:'fit-content',height:'fit-content'}} onMouseLeave = {(e) => {setActive(false)}} onClick = {(!active)?((e) => {setActive(true)}):((e) => {})}>
-        <span className = "control_label" style = {{color:(active?value:'#000000')}}>{label}</span>
+        <div className = "color_picker_container" style = {{cursor:'pointer',width:'fit-content',height:'fit-content'}}>
+        <span className = "control_label" onClick = {(e) => {setActive(!active)}} style = {{color:(active?value:'#000000')}}>{label}</span>
         {active &&
-        <HexColorPicker className = "color_picker" onChange={callbackFn} color = {defaultValue}></HexColorPicker>
+            <HexColorPicker className = "color_picker" onChange={callbackFn} color = {defaultValue}></HexColorPicker>
         }
         </div>
     )
