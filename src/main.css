@@ -14,7 +14,6 @@ body {
 .app_container{
     display:block;
     position:relative;
-    z-index: -1;
 }
 .canvas_container{
     display:block;
@@ -27,20 +26,29 @@ body {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .ascii_canvas{
-    z-index: 0;
+    position:relative;
+    z-index:1;
     transition:0.2s;
     margin:0 auto;
     display:block;
     margin:auto;
+    text-overflow: clip;
 }
 .canvas_background{
     transition:0.2s;
-    z-index:0;
     position:absolute;
-    top:-1em;
     left:-1ch;
     pointer-events: none;
     background-color:transparent;
+}
+.selection_box{
+    z-index:0;
+    position:absolute;
+    border-style:dashed;
+    border-width:1px;
+    pointer-events:none;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background-color:#ffff00;
 }
 .ui_container{
     /* position:fixed; */

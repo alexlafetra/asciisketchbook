@@ -10,8 +10,6 @@ function App() {
 
   const settings = {
     pixelDensity : 1,
-    canvasWidth : window.innerWidth,
-    canvasHeight : window.innerHeight,
     rows:25,
     columns:50,
     fontSize : 12,
@@ -28,10 +26,16 @@ function App() {
         rows : 25,
         columns : 50
       },
+      wire: {
+        title:'wire',
+        data : `                                                             #\\                                                 .\\                        y                        \\\\                      /.           _.            \\\\                    //            . \` --.       \\ \\                  ./              ._   \`\\\`\`\`-_  \\ \\__.             ;/              \`\`\`-_   \\    \`\`\`\\ \\ \\-.          / *                   \`\`\`\`\`-_  \\  \\ \\ \\ \\-,      : /                            \`\`\`\`.\\ \\ \\ \\ \\--. / ;                                 / y_. \\ \\ \\. \\ /                                 / /   \\_\\ \\ \\\\ \\ \`\`\`\`-_                          //\`       \\_\\ \\\\ \\      \`.\`\`\`-_                  //            \`-\`\\ \\\`\`\`-_  \\     \`\`\`             {.                 \\ ;    \`\`\`---_                                     \\ \\          \`\`\`\`                                  \`\\                                                 \`}                                                                                                                                                                                                                                                                                                                                                                            `,
+        rows : 25,
+        columns : 50
+      }
     },
   }
   
-  let canvasData = settings.presets.house.data.padStart(settings.rows*settings.columns,' ');
+  let canvasData = settings.presets.wire.data.padStart(settings.rows*settings.columns,' ');
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
   const [bufferCanvas,setBufferCanvas] = useState(canvasData);
@@ -42,6 +46,15 @@ function App() {
   const [fontSize,setFontSize] = useState(settings.fontSize);
   const [textSpacing,setTextSpacing] = useState(settings.textSpacing);
   const [lineHeight,setLineHeight] = useState(settings.lineHeight);
+  const [canvasDimensions,setCanvasDimensions] = useState({width:settings.columns,height:settings.rows});
+  const [textSelectable,setTextSelectable] = useState(false);
+  const [selectionBox,setSelectionBox] = useState({
+    started : false,
+    finished : false,
+    startCoord : {x:0,y:0},
+    endCoord : {x:0,y:0}
+  });
+  const [textClipboard,setTextClipboard] = useState({data:'',width:0,height:0});
   const [lineData,setLineData] = useState({
     begun : false,
     moved : false,
@@ -53,7 +66,10 @@ function App() {
   const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
   const bufferCanvasRef = useRef(bufferCanvas);
-
+  const selectionBoxRef = useRef(selectionBox);
+  const canvasDimensionsRef = useRef(canvasDimensions);
+  const currentCharRef = useRef(currentChar);
+  const textClipboardRef = useRef(textClipboard);
   //making sure the callback can access "fresh" versions of state data
   useEffect(() => {
     activeCharIndexRef.current = activeCharIndex;
@@ -71,6 +87,22 @@ function App() {
     bufferCanvasRef.current = bufferCanvas;
   },[bufferCanvas]);
 
+  useEffect(() => {
+    selectionBoxRef.current = selectionBox;
+  },[selectionBox]);
+
+  useEffect(() => {
+    canvasDimensionsRef.current = canvasDimensions;
+  },[canvasDimensions]);
+
+  useEffect(() => {
+    currentCharRef.current = currentChar;
+  },[currentChar]);
+
+  useEffect(() => {
+    textClipboardRef.current = textClipboard;
+  },[textClipboard]);
+
   //add keypress event handlers, but only once
   useEffect(() => {
     window.document.addEventListener('keyup', handleKeyPress);
@@ -79,22 +111,35 @@ function App() {
     }
   }, []);
 
-  // for(let i = 0; i<settings.rows*settings.columns; i++){
+  // for(let i = 0; i<canvasDimensions.height*settings.columns; i++){
   //   canvasData+=' ';
   // }
 
   function createBackground(){
     let side = '';
-    side = side.padStart(settings.columns,' ');
+    side = side.padStart(canvasDimensions.width,' ');
     side = '|'+side+'|';
     let str = '';
-    for(let i = 0; i<settings.rows; i++){
+    for(let i = 0; i<canvasDimensions.height; i++){
       str += side +'\n';
     }
     let top = '';
-    top = top.padStart(settings.columns,'-');
+    top = top.padStart(canvasDimensions.width,'-');
     top = '*'+top+'*';
     return top+'\n'+str+top;
+  }
+
+  function resizeCanvas(originalDims,newDims,data){
+    let newString = '';
+    for(let r = 1; r<Math.min(originalDims.height,newDims.height); r++){
+      //get the original row
+      let rowString = data.substring((r-1)*originalDims.width,Math.min((r*originalDims.width),(r*newDims.width)));
+      rowString = rowString.padEnd(newDims.width,' ');
+      newString += rowString;
+    }
+    newString = newString.padEnd(newDims.width*newDims.height,' ');
+    setCanvasDimensions({width:newDims.width,height:newDims.height});
+    return newString;
   }
 
   function startLine(index){
@@ -110,8 +155,8 @@ function App() {
     setBufferCanvas(divContents);
   }
   function endLine(endIndex){
-    const start = {x:lineData.startIndex%settings.columns,y:Math.trunc(lineData.startIndex/settings.columns)};
-    const end = {x:endIndex%settings.columns,y:Math.trunc(endIndex/settings.columns)};
+    const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
+    const end = {x:endIndex%canvasDimensions.width,y:Math.trunc(endIndex/canvasDimensions.width)};
     const line = {
       begun : false,
       moved : false,
@@ -133,11 +178,24 @@ function App() {
     };
     //px per char
     const characterDims = {
-      width : e.target.clientWidth / settings.columns,
-      height : e.target.clientHeight / settings.rows,
+      width : e.target.clientWidth / canvasDimensions.width,
+      height : e.target.clientHeight / canvasDimensions.height,
     };
 
-    return Math.trunc(clickCoords.x/characterDims.width)+settings.columns*Math.trunc(clickCoords.y/characterDims.height);
+    return Math.trunc(clickCoords.x/characterDims.width)+canvasDimensions.width*Math.trunc(clickCoords.y/characterDims.height);
+  }
+
+  function getClickCoords(e){
+    const clickCoords = {
+      x:e.clientX - e.target.offsetParent.offsetLeft,
+      y:e.clientY - e.target.offsetParent.offsetTop
+    };
+    //px per char
+    const characterDims = {
+      width : e.target.clientWidth / canvasDimensions.width,
+      height : e.target.clientHeight / canvasDimensions.height,
+    };
+    return {x: Math.trunc(clickCoords.x/characterDims.width),y:Math.trunc(clickCoords.y/characterDims.height)};
   }
 
   function handleMouseUp(e){
@@ -157,13 +215,40 @@ function App() {
         setLineData(line);
       }
     }
+    if(selectionBox.started){
+      const newBox = {
+        started : false,
+        finished : true,
+        startCoord : selectionBox.startCoord,
+        endCoord : getClickCoords(e)
+      };
+      setSelectionBox(newBox);
+    }
   }
 
   function handleMouseDown(e){
-    //if shifting, then start drawing a line
+    //selectionbox
     if(e.shiftKey){
+      const newBox = {
+        started : true,
+        finished : false,
+        startCoord : getClickCoords(e),
+        endCoord : getClickCoords(e)
+      };
+      setSelectionBox(newBox);
+    }
+    else{
+      //start drawing a line
       const newIndex = getClickIndex(e);
       startLine(newIndex);
+      //cancel the selection box, if there was one
+      const newBox = {
+        started : false,
+        finished : false,
+        startCoord : getClickCoords(e),
+        endCoord : getClickCoords(e)
+      };
+      setSelectionBox(newBox);
     }
   }
   function handleMouseMove(e){
@@ -174,8 +259,8 @@ function App() {
         return;
       }
       const tempCanvas = bufferCanvas;
-      const start = {x:lineData.startIndex%settings.columns,y:Math.trunc(lineData.startIndex/settings.columns)};
-      const coords = {x:newIndex%settings.columns,y:Math.trunc(newIndex/settings.columns)};
+      const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
+      const coords = {x:newIndex%canvasDimensions.width,y:Math.trunc(newIndex/canvasDimensions.width)};
       
       const line = {
         begun : true,
@@ -186,6 +271,26 @@ function App() {
       };
       setLineData(line);
       setDivContents(drawLine(start,coords,currentChar,tempCanvas));
+    }
+    if(selectionBox.started){
+      let newBox;
+      if(e.shiftKey){
+        newBox = {
+          started : true,
+          finished : false,
+          startCoord : selectionBox.startCoord,
+          endCoord : getClickCoords(e)
+        };
+      }
+      else{
+        newBox = {
+          started : false,
+          finished : false,
+          startCoord : selectionBox.startCoord,
+          endCoord : getClickCoords(e)
+        };
+      }
+      setSelectionBox(newBox);
     }
   }
 
@@ -231,9 +336,9 @@ function App() {
     let y = start.y;
     for (let x = start.x; x <= end.x; x++) {
       if (steep) {
-        canvas = writeCharacter(x*settings.columns+y, char, canvas);
+        canvas = writeCharacter(x*canvasDimensions.width+y, char, canvas);
       } else {
-        canvas = writeCharacter(y*settings.columns+x, char, canvas);
+        canvas = writeCharacter(y*canvasDimensions.width+x, char, canvas);
       }
       err -= dy;
       if (err < 0) {
@@ -246,49 +351,126 @@ function App() {
 
   function shiftCharacters(index,amount,data){
     let insertStr = '';
-    const rowStartIndex = Math.trunc(index/settings.columns)*(settings.columns);
-    const moveAmt = Math.min(amount<0?(settings.columns - index%settings.columns):(settings.columns - (index%settings.columns)),Math.abs(amount));
+    const rowStartIndex = Math.trunc(index/canvasDimensions.width)*(canvasDimensions.width);
+    const moveAmt = Math.min(amount<0?(canvasDimensions.width - index%canvasDimensions.width):(canvasDimensions.width - (index%canvasDimensions.width)),Math.abs(amount));
     for(let i = 0; i<moveAmt; i++){
       insertStr += ' ';
     }
     if(amount<0)
-      setDivContents(data.substring(0,index)+data.substring(index+moveAmt,rowStartIndex+settings.columns)+insertStr+data.substring(rowStartIndex+settings.columns));
+      setDivContents(data.substring(0,index)+data.substring(index+moveAmt,rowStartIndex+canvasDimensions.width)+insertStr+data.substring(rowStartIndex+canvasDimensions.width));
     else
-      setDivContents(data.substring(0,index)+insertStr+data.substring(index,rowStartIndex+settings.columns-moveAmt)+data.substring(rowStartIndex+settings.columns));
+      setDivContents(data.substring(0,index)+insertStr+data.substring(index,rowStartIndex+canvasDimensions.width-moveAmt)+data.substring(rowStartIndex+canvasDimensions.width));
   }
   function newLine(index,amount,data){
-    const rowStartIndex = Math.trunc(index/settings.columns)*(settings.columns);
+    const rowStartIndex = Math.trunc(index/canvasDimensions.width)*(canvasDimensions.width);
     let insertStr = '';
-    for(let i = 0; i<settings.columns; i++){
+    for(let i = 0; i<canvasDimensions.width; i++){
       insertStr += ' ';
     }
-    const moveAmt = Math.min(amount>0?settings.rows:(rowStartIndex/settings.columns),Math.abs(amount))
+    const moveAmt = Math.min(amount>0?canvasDimensions.height:(rowStartIndex/canvasDimensions.width),Math.abs(amount))
     if(amount>0){
       for(let i = 0; i<moveAmt; i++){
-        setDivContents(data.substring(0,rowStartIndex)+insertStr+data.substring(rowStartIndex,data.length-settings.columns*moveAmt));
+        setDivContents(data.substring(0,rowStartIndex)+insertStr+data.substring(rowStartIndex,data.length-canvasDimensions.width*moveAmt));
       }
     }
     else{
       for(let i = 0; i<moveAmt; i++){
-        setDivContents(data.substring(0,rowStartIndex)+data.substring(rowStartIndex+settings.columns*moveAmt)+insertStr);
+        setDivContents(data.substring(0,rowStartIndex)+data.substring(rowStartIndex+canvasDimensions.width*moveAmt)+insertStr);
       }
     }
   }
 
   function moveColumn(index,amount,data){
-    const rowIndex = Math.trunc(index/settings.columns);
-    const colIndex = index % settings.columns;
+    const rowIndex = Math.trunc(index/canvasDimensions.width);
+    const colIndex = index % canvasDimensions.width;
     if(amount>0){
-      for(let i = (settings.rows); i>rowIndex; i--){
-        setCharacter(i*settings.columns+colIndex,data.charAt((i-1)*settings.columns+colIndex),data);
+      for(let i = (canvasDimensions.height); i>rowIndex; i--){
+        setCharacter(i*canvasDimensions.width+colIndex,data.charAt((i-1)*canvasDimensions.width+colIndex),data);
       }
-      setCharacter(rowIndex*settings.columns+colIndex,' ');
+      setCharacter(rowIndex*canvasDimensions.width+colIndex,' ');
     }
     else{
-      for(let i = rowIndex; i<(settings.rows-1); i++){
-        setCharacter(i*settings.columns+colIndex,data.charAt((i+1)*settings.columns+colIndex),data);
+      for(let i = rowIndex; i<(canvasDimensions.height-1); i++){
+        setCharacter(i*canvasDimensions.width+colIndex,data.charAt((i+1)*canvasDimensions.width+colIndex),data);
       }
     }
+  }
+  function copyArea(startCoord,endCoord,data,dataWidth){
+    let tempData = data;
+    let topL = {x:Math.min(startCoord.x,endCoord.x),y:Math.min(startCoord.y,endCoord.y)};
+    let bottomR = {x:Math.max(startCoord.x,endCoord.x),y:Math.max(startCoord.y,endCoord.y)};
+    let width = bottomR.x - topL.x;
+
+    let copyStr = '';
+
+    //for each row containing the cut, grab the part before, blank, and the part after
+    for(let y = topL.y;y<bottomR.y;y++){
+      const rowStart = dataWidth*y;
+      const cutStart = rowStart+topL.x;
+      const cutEnd = cutStart+width;
+      const rowEnd = rowStart+dataWidth;
+      copyStr += tempData.substring(cutStart,cutEnd);
+    };
+    //grab the rest of it
+    return {data:copyStr,width : width, height: bottomR.y - topL.y};
+  }
+  function cutArea(startCoord,endCoord,data,dataWidth,fillCharacter){
+    let tempData = data;
+    let topL = {x:Math.min(startCoord.x,endCoord.x),y:Math.min(startCoord.y,endCoord.y)};
+    let bottomR = {x:Math.max(startCoord.x,endCoord.x),y:Math.max(startCoord.y,endCoord.y)};
+    let width = bottomR.x - topL.x;
+
+    let cutStr = '';
+    let blankStr = '';
+    let newStr = '';
+    blankStr = blankStr.padStart(width,fillCharacter);
+
+    //first bit (before the first row cut)
+    newStr += tempData.substring(0,dataWidth*topL.y);
+    //for each row containing the cut, grab the part before, blank, and the part after
+    for(let y = topL.y;y<bottomR.y;y++){
+      const rowStart = dataWidth*y;
+      const cutStart = rowStart+topL.x;
+      const cutEnd = cutStart+width;
+      const rowEnd = rowStart+dataWidth;
+      newStr += tempData.substring(rowStart,cutStart)+blankStr+tempData.substring(cutEnd,rowEnd);
+      cutStr += tempData.substring(cutStart,cutEnd);
+    };
+    //grab the rest of it
+    newStr += tempData.substring((bottomR.y) * dataWidth);
+    return {data:newStr,cutData:{data:cutStr,width : width, height: bottomR.y - topL.y}};
+  }
+  function paste(clipData,data,coords,dataWidth){
+    let newData = '';
+    //grab up until first row
+    newData = data.substring(0,dataWidth*coords.y);
+    for(let y = 0; y<clipData.height; y++){
+      const pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width);
+      const rowStart = dataWidth*(coords.y+y);
+      const pasteStart = rowStart+coords.x;
+      const pasteEnd = pasteStart+clipData.width;
+      const rowEnd = rowStart+dataWidth;
+      newData += data.substring(rowStart,pasteStart)+pasteRow+data.substring(pasteEnd,rowEnd);
+    }
+    newData += data.substring(dataWidth*(coords.y+clipData.height));
+    return newData;
+  }
+
+  function shiftArea(coords,direction,data,dataWidth){
+    let topL = {x:Math.min(coords.startCoord.x,coords.endCoord.x),y:Math.min(coords.startCoord.y,coords.endCoord.y)};
+    let bottomR = {x:Math.max(coords.startCoord.x,coords.endCoord.x),y:Math.max(coords.startCoord.y,coords.endCoord.y)};
+
+    //checking bounds
+    if(((topL.x + direction.x) < 0) || ((bottomR.x + direction.x) > dataWidth)){
+      return data;
+    }
+    if(((topL.y + direction.y) < 0) || ((bottomR.y + direction.y) > data.length/dataWidth)){
+      return data;
+    }
+
+    let newData = cutArea(coords.startCoord,coords.endCoord,data,dataWidth,' ');
+    newData.data = paste(newData.cutData,newData.data,{x:Math.min(coords.startCoord.x,coords.endCoord.x)+direction.x,y:Math.min(coords.startCoord.y,coords.endCoord.y)+direction.y},dataWidth);
+    return newData.data;
   }
 
   function handleKeyPress(e){
@@ -296,24 +478,51 @@ function App() {
     e.stopPropagation();
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
+    const activeChar = currentCharRef.current;
     const textData = divContentsRef.current;
     const line = lineDataRef.current;
     const bufCanvas = bufferCanvasRef.current;
+    const selection = selectionBoxRef.current;
+    const canvDims = canvasDimensionsRef.current;
+    const clip = textClipboardRef.current;
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
+      if(e.key == 'x' && e.ctrlKey && (selection.started || selection.finished)){
+        let newData = cutArea(selection.startCoord,selection.endCoord,textData,canvDims.width,' ');
+        setDivContents(newData.data);
+        setTextClipboard(newData.cutData);
+        return;
+      }
+      else if(e.key == 'c' && e.ctrlKey && (selection.started || selection.finished)){
+        let newData = copyArea(selection.startCoord,selection.endCoord,textData,canvDims.width,activeChar);
+        setTextClipboard(newData);
+        return;
+      }
+      //if ctrl v, and if there's something on the clipboard
+      else if(e.key == 'v' && e.ctrlKey && clip.data.length){
+        const coords = {x:index%canvDims.width,y:Math.trunc(index/canvDims.width)};
+        const newData = paste(clip,textData,coords,canvDims.width);
+        setDivContents(newData);
+        return;
+      }
+      else if(e.key == 'f' && e.ctrlKey && (selection.started || selection.finished)){
+        let newData = cutArea(selection.startCoord,selection.endCoord,textData,canvDims.width,activeChar);
+        setDivContents(newData.data);
+        return;
+      }
       //if you're not drawing a line, set the active char
       if(!line.begun){
         setCharacter(index,e.key,textData);
-        if(settings.advanceWhenCharacterEntered && (index%settings.columns)<(settings.columns-1)){
+        if(settings.advanceWhenCharacterEntered && (index%canvDims.width)<(canvDims.width-1)){
           setActiveCharIndex(index+1);
         }
       }
       //if you are drawing a line, redraw it with the new character
       else if(line.moved){
         const tempCanvas = bufCanvas;
-        const startCoords = {x:line.startIndex%settings.columns,y:Math.trunc(line.startIndex/settings.columns)};
-        const endCoords = {x:line.endIndex%settings.columns,y:Math.trunc(line.endIndex/settings.columns)};
+        const startCoords = {x:line.startIndex%canvDims.width,y:Math.trunc(line.startIndex/canvDims.width)};
+        const endCoords = {x:line.endIndex%canvDims.width,y:Math.trunc(line.endIndex/canvDims.width)};
         const newL = {
           begun : true,
           moved : true,
@@ -330,31 +539,79 @@ function App() {
       setCharacter(index,' ',textData);
     }
     else if(e.key === 'ArrowRight'){
-      if(e.shiftKey)
+      if(selection.started || selection.finished){
+        setDivContents(shiftArea(selection,{x:1,y:0},textData,canvDims.width));
+        setSelectionBox(
+          {
+            startCoord:{x:selection.startCoord.x+1,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x+1,y:selection.endCoord.y},
+            started : selection.started,
+            finished : selection.finished
+          }
+        );
+        return;
+      }
+      else if(e.shiftKey)
         shiftCharacters(index,1,textData);
-      else if((index%settings.columns)<(settings.columns-1)){
+      else if((index%canvDims.width)<(canvDims.width-1)){
         setActiveCharIndex(index+1);
       }
     }
     else if(e.key === 'ArrowLeft'){
-      if(e.shiftKey)
+      if(selection.started || selection.finished){
+        setDivContents(shiftArea(selection,{x:-1,y:0},textData,canvDims.width));
+        setSelectionBox(
+          {
+            startCoord:{x:selection.startCoord.x-1,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x-1,y:selection.endCoord.y},
+            started : selection.started,
+            finished : selection.finished
+          }
+        );
+        return;
+      }
+      else if(e.shiftKey)
         shiftCharacters(index,-1,textData);
-      else if((index%settings.columns)>0)
+      else if((index%canvDims.width)>0)
         setActiveCharIndex(index-1);
 
     }
     else if(e.key === 'ArrowUp'){
-      if(e.shiftKey)
+      if(selection.started || selection.finished){
+        setDivContents(shiftArea(selection,{x:0,y:-1},textData,canvDims.width));
+        setSelectionBox(
+          {
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y-1},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y-1},
+            started : selection.started,
+            finished : selection.finished
+          }
+        );
+        return;
+      }
+      else if(e.shiftKey)
         moveColumn(index,-1,textData);
-      else if(index/settings.columns>=1){
-        setActiveCharIndex(index-settings.columns);
+      else if(index/canvDims.width>=1){
+        setActiveCharIndex(index-canvDims.width);
       }
     }
     else if(e.key === 'ArrowDown'){
-      if(e.shiftKey)
+      if(selection.started || selection.finished){
+        setDivContents(shiftArea(selection,{x:0,y:1},textData,canvDims.width));
+        setSelectionBox(
+          {
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y+1},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y+1},
+            started : selection.started,
+            finished : selection.finished
+          }
+        );
+        return;
+      }
+      else if(e.shiftKey)
         moveColumn(index,1,textData);
-      else if(index/settings.columns<(settings.rows-1)){
-        setActiveCharIndex(index+settings.columns);
+      else if(index/canvDims.width<(canvDims.height-1)){
+        setActiveCharIndex(index+canvDims.width);
       }
     }
     else if(e.key == 'Enter'){
@@ -368,10 +625,10 @@ function App() {
   //adds in \n characters and a <span> container for the highlighted text
   function processText(data){
     let finalString = '';
-    for(let row = 0; row<settings.rows; row++){
-      finalString += data.substring(row*settings.columns,(row+1)*settings.columns)+'\n';
+    for(let row = 0; row<canvasDimensions.height; row++){
+      finalString += data.substring(row*canvasDimensions.width,(row+1)*canvasDimensions.width)+'\n';
     }
-    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/settings.columns)),<span key = '1' className = "active_character" style = {{backgroundColor:settings.activeHighlight}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/settings.columns))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/settings.columns)+1)];
+    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width)),<span key = '1' className = "active_character" style = {{backgroundColor:settings.activeHighlight,lineHeight:lineHeight,letterSpacing:textSpacing+'px'}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width)+1)];
     return finalString;
   }
 
@@ -387,25 +644,75 @@ function App() {
     color:'#0000ff'
   }
 
+  const selectionBoxStyle = {
+    width:String(Math.abs(selectionBox.startCoord.x - selectionBox.endCoord.x))+'ch',
+    height:String(Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*lineHeight)+'em',
+    left:Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x) + 'ch',
+    top:String(Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)*lineHeight) + 'em',
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    fontSize:fontSize+'px',
+    borderColor:textColor
+  }
   return (
     <>
       {/* canvas */}
-      <div className = "canvas_container" style = {{lineHeight:lineHeight,letterSpacing:textSpacing+'px'}}>
-        <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:backgroundColor,width: settings.columns+'ch'}}>
+      <div className = "canvas_container" style = {{lineHeight:lineHeight,letterSpacing:textSpacing+'px',backgroundColor:backgroundColor}}>
+        {(selectionBox.started||selectionBox.finished) &&
+          <div className = "selection_box" style = {selectionBoxStyle}/>
+        }
+        <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{userSelect : textSelectable?'default':'none',cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:'transparent',width: canvasDimensions.width+'ch'}}>
           {processText(divContents)}
         </div>
-        <div className = "canvas_background" style = {{fontSize:fontSize+'px',width: settings.columns+2+'ch'}}>
+        <div className = "canvas_background" style = {{top:'-'+String(lineHeight)+'em',fontSize:fontSize+'px',width: canvasDimensions.width+2+'ch'}}>
           {createBackground()}
         </div>
       </div>
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
-        <div className = 'help_text'>(shift+click) lines</div>
+        {!(selectionBox.started || selectionBox.finished) && 
+          <div className = 'help_text'>(shift+drag to select an area)</div>
+        }
+        {(selectionBox.started && !selectionBox.finished) &&
+          <div className = 'help_text'>selecting [{selectionBox.startCoord.x},{selectionBox.startCoord.y}],[{selectionBox.endCoord.x},{selectionBox.endCoord.y}]...</div>
+        }
+        {selectionBox.finished &&
+          <div className = 'help_text'>(arrow keys to translate area)</div>
+        }
+        <div className = "ascii_button" onClick = {(e) => {setTextSelectable(!textSelectable);}}>selectable [{textSelectable?'X':' '}]</div>
+        {(selectionBox.started || selectionBox.finished) && 
+        <>
+        <div className = "ascii_button" onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
+                                                              const newData = cutArea(selectionBox.startCoord,selectionBox.endCoord,divContents,canvasDimensions.width,' ');
+                                                              setDivContents(newData.data);
+                                                            }}}>cut (ctrl+x)</div>
+        <div className = "ascii_button" onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
+                                                              const newData = copyArea(selectionBox.startCoord,selectionBox.endCoord,divContents,canvasDimensions.width,' ');
+                                                              setTextClipboard(newData);
+                                                            }}}>copy (ctrl+c)</div>
+        </>}
+        {/* paste button, when there's something to paste */}
+        {!(textClipboard.data.length === 0) && 
+          <div className = "ascii_button" onClick = {(e) => {
+                                                            const coords = {x:activeCharIndex%canvasDimensions.width,y:Math.trunc(activeCharIndex/canvasDimensions.width)};
+                                                            const newData = paste(textClipboard,divContents,coords,canvasDimensions.width);
+                                                            console.log(newData);                                                           
+                                                            setDivContents(newData.data);
+                                                          }}>paste (ctrl+v)</div>
+        }
+        {/* fill */}
+        {(selectionBox.started || selectionBox.finished) && 
+        <div className = "ascii_button" onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
+                                                                const newData = cutArea(selectionBox.startCoord,selectionBox.endCoord,divContents,canvasDimensions.width,currentChar);
+                                                                setDivContents(newData.data);
+                                                              }}}>fill (ctrl+f)</div>
+        }
+        <div className = "ascii_button" onClick = {(e) => {setDivContents(resizeCanvas({width:canvasDimensions.width,height:canvasDimensions.height},{width:100,height:50},divContents))}}>extend</div>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText(divContents));}}>copy (multiline)</div>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy (single line)</div>
         <div className = "ascii_button" onClick = {(e) => {canvasData=``;
-        for(let i = 0; i<settings.rows*settings.columns; i++){
+        for(let i = 0; i<canvasDimensions.height*canvasDimensions.width; i++){
           canvasData+=' ';
         }setDivContents(canvasData);}}>clear</div>
         <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
