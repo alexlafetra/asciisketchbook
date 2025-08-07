@@ -4,6 +4,7 @@ import ColorPicker from './components/colorpicker';
 import Slider from './components/slider';
 import './App.css'
 import './main.css';
+import Dropdown from './components/dropdown';
 
 
 function App() {
@@ -35,7 +36,7 @@ function App() {
     },
   }
   
-  let canvasData = settings.presets.wire.data.padStart(settings.rows*settings.columns,' ');
+  let canvasData = settings.presets.house.data.padStart(settings.rows*settings.columns,' ');
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
   const [bufferCanvas,setBufferCanvas] = useState(canvasData);
@@ -105,9 +106,9 @@ function App() {
 
   //add keypress event handlers, but only once
   useEffect(() => {
-    window.document.addEventListener('keyup', handleKeyPress);
+    window.document.addEventListener('keydown', handleKeyPress);
     return () => {
-      window.document.removeEventListener('keyup', handleKeyPress);
+      window.document.removeEventListener('keydown', handleKeyPress);
     }
   }, []);
 
@@ -129,7 +130,8 @@ function App() {
     return top+'\n'+str+top;
   }
 
-  function resizeCanvas(originalDims,newDims,data){
+  function resizeCanvas(newDims,data){
+    const originalDims = canvasDimensionsRef.current;
     let newString = '';
     for(let r = 1; r<Math.min(originalDims.height,newDims.height); r++){
       //get the original row
@@ -181,7 +183,6 @@ function App() {
       width : e.target.clientWidth / canvasDimensions.width,
       height : e.target.clientHeight / canvasDimensions.height,
     };
-
     return Math.trunc(clickCoords.x/characterDims.width)+canvasDimensions.width*Math.trunc(clickCoords.y/characterDims.height);
   }
 
@@ -445,12 +446,15 @@ function App() {
     //grab up until first row
     newData = data.substring(0,dataWidth*coords.y);
     for(let y = 0; y<clipData.height; y++){
-      const pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width);
       const rowStart = dataWidth*(coords.y+y);
-      const pasteStart = rowStart+coords.x;
-      const pasteEnd = pasteStart+clipData.width;
       const rowEnd = rowStart+dataWidth;
-      newData += data.substring(rowStart,pasteStart)+pasteRow+data.substring(pasteEnd,rowEnd);
+      const pasteStart = rowStart+coords.x;
+      const pasteEnd = Math.min(pasteStart+clipData.width,rowEnd);
+      //get a row from the clipboard
+      const pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width,dataWidth+y*clipData.width);
+      //grab part that'll fit on the canvas
+      const pasteFinal = pasteRow.substring(0,Math.min(dataWidth-coords.x,clipData.width+coords.x));
+      newData += data.substring(rowStart,pasteStart)+pasteFinal+data.substring(pasteEnd,rowEnd);
     }
     newData += data.substring(dataWidth*(coords.y+clipData.height));
     return newData;
@@ -471,6 +475,18 @@ function App() {
     let newData = cutArea(coords.startCoord,coords.endCoord,data,dataWidth,' ');
     newData.data = paste(newData.cutData,newData.data,{x:Math.min(coords.startCoord.x,coords.endCoord.x)+direction.x,y:Math.min(coords.startCoord.y,coords.endCoord.y)+direction.y},dataWidth);
     return newData.data;
+  }
+
+  function checkMove(selection,direction,dimensions){
+    let topL = {x:Math.min(selection.startCoord.x,selection.endCoord.x),y:Math.min(selection.startCoord.y,selection.endCoord.y)};
+    let bottomR = {x:Math.max(selection.startCoord.x,selection.endCoord.x),y:Math.max(selection.startCoord.y,selection.endCoord.y)};
+
+    if(topL.x + direction.x < 0 ||
+       bottomR.x + direction.x > dimensions.width ||
+       topL.y + direction.y < 0 ||
+       bottomR.y + direction.y > dimensions.height
+    ) return false;
+    else return true;
   }
 
   function handleKeyPress(e){
@@ -513,6 +529,13 @@ function App() {
       }
       //if you're not drawing a line, set the active char
       if(!line.begun){
+        //if selbox
+        if(selection.started || selection.finished){
+          let newData = cutArea(selection.startCoord,selection.endCoord,textData,canvDims.width,e.key);
+          setDivContents(newData.data);
+          setCurrentChar(e.key);
+          return;
+        }
         setCharacter(index,e.key,textData);
         if(settings.advanceWhenCharacterEntered && (index%canvDims.width)<(canvDims.width-1)){
           setActiveCharIndex(index+1);
@@ -539,7 +562,7 @@ function App() {
       setCharacter(index,' ',textData);
     }
     else if(e.key === 'ArrowRight'){
-      if(selection.started || selection.finished){
+      if((selection.started || selection.finished) && checkMove(selection,{x:1,y:0},canvDims)){
         setDivContents(shiftArea(selection,{x:1,y:0},textData,canvDims.width));
         setSelectionBox(
           {
@@ -558,7 +581,7 @@ function App() {
       }
     }
     else if(e.key === 'ArrowLeft'){
-      if(selection.started || selection.finished){
+      if((selection.started || selection.finished) && checkMove(selection,{x:-1,y:0},canvDims)){
         setDivContents(shiftArea(selection,{x:-1,y:0},textData,canvDims.width));
         setSelectionBox(
           {
@@ -577,7 +600,7 @@ function App() {
 
     }
     else if(e.key === 'ArrowUp'){
-      if(selection.started || selection.finished){
+      if((selection.started || selection.finished) && checkMove(selection,{x:0,y:-1},canvDims)){
         setDivContents(shiftArea(selection,{x:0,y:-1},textData,canvDims.width));
         setSelectionBox(
           {
@@ -596,7 +619,7 @@ function App() {
       }
     }
     else if(e.key === 'ArrowDown'){
-      if(selection.started || selection.finished){
+      if((selection.started || selection.finished) && checkMove(selection,{x:0,y:1},canvDims)){
         setDivContents(shiftArea(selection,{x:0,y:1},textData,canvDims.width));
         setSelectionBox(
           {
@@ -622,13 +645,14 @@ function App() {
     }
   }
 
-  //adds in \n characters and a <span> container for the highlighted text
-  function processText(data){
+  //adds in \n characters at the end of each line
+  function processText(){
+    const data = divContents;
+    const dimensions = canvasDimensions;
     let finalString = '';
-    for(let row = 0; row<canvasDimensions.height; row++){
-      finalString += data.substring(row*canvasDimensions.width,(row+1)*canvasDimensions.width)+'\n';
+    for(let row = 0; row<dimensions.height; row++){
+      finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
     }
-    finalString = [finalString.substring(0,activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width)),<span key = '1' className = "active_character" style = {{backgroundColor:settings.activeHighlight,lineHeight:lineHeight,letterSpacing:textSpacing+'px'}}>{finalString.charAt(activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width))}</span>,finalString.substring(activeCharIndex+Math.trunc(activeCharIndex/canvasDimensions.width)+1)];
     return finalString;
   }
 
@@ -654,15 +678,47 @@ function App() {
     fontSize:fontSize+'px',
     borderColor:textColor
   }
+
+  const highlightBoxStyle = {
+    width:'1ch',
+    height: lineHeight+'em',
+    left: String(activeCharIndex%canvasDimensions.width) + 'ch',
+    top: String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em',
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    fontSize:fontSize+'px',
+    backgroundColor:'#ffff00ff',
+    position:'absolute'
+  };
+
+  const canvasContainerStyle = {
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    backgroundColor:backgroundColor,
+  }
+
+  const canvasStyle = {
+    userSelect : textSelectable?'default':'none',
+    cursor:'pointer',
+    fontSize:fontSize+'px',
+    color:textColor,
+    backgroundColor:'transparent',
+    width: canvasDimensions.width+'ch',
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    width:'fit-content'
+  }
+
   return (
     <>
       {/* canvas */}
-      <div className = "canvas_container" style = {{lineHeight:lineHeight,letterSpacing:textSpacing+'px',backgroundColor:backgroundColor}}>
+      <div className = "canvas_container" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {canvasContainerStyle}>
         {(selectionBox.started||selectionBox.finished) &&
           <div className = "selection_box" style = {selectionBoxStyle}/>
         }
-        <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {{userSelect : textSelectable?'default':'none',cursor:'pointer',fontSize:fontSize+'px',color:textColor,backgroundColor:'transparent',width: canvasDimensions.width+'ch'}}>
-          {processText(divContents)}
+        <div className = "highlight_box" style = {highlightBoxStyle}/>
+        <div className = "ascii_canvas" style = {canvasStyle}>
+          {processText()}
         </div>
         <div className = "canvas_background" style = {{top:'-'+String(lineHeight)+'em',fontSize:fontSize+'px',width: canvasDimensions.width+2+'ch'}}>
           {createBackground()}
@@ -671,6 +727,7 @@ function App() {
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
+        <div className = 'help_text'>highlighting: [x:{activeCharIndex%canvasDimensions.width} y:{Math.trunc(activeCharIndex/canvasDimensions.width)}]</div>
         {!(selectionBox.started || selectionBox.finished) && 
           <div className = 'help_text'>(shift+drag to select an area)</div>
         }
@@ -708,13 +765,11 @@ function App() {
                                                                 setDivContents(newData.data);
                                                               }}}>fill (ctrl+f)</div>
         }
-        <div className = "ascii_button" onClick = {(e) => {setDivContents(resizeCanvas({width:canvasDimensions.width,height:canvasDimensions.height},{width:100,height:50},divContents))}}>extend</div>
-        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText(divContents));}}>copy (multiline)</div>
-        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy (single line)</div>
-        <div className = "ascii_button" onClick = {(e) => {canvasData=``;
-        for(let i = 0; i<canvasDimensions.height*canvasDimensions.width; i++){
-          canvasData+=' ';
-        }setDivContents(canvasData);}}>clear</div>
+        <div className = "ascii_button" onClick = {(e) => {setDivContents(resizeCanvas({width:canvasDimensions.width+10,height:canvasDimensions.height+5},divContents))}}>extend</div>
+        <Dropdown label = 'presets' callback = {(val) => {setDivContents(settings.presets[val].data);}} defaultValue={'house'} options = {['house','wire']}></Dropdown>
+        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText());}}>copy contents (with line breaks)</div>
+        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy contents (as a single line)</div>
+        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
         <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
         <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>

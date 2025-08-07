@@ -1,5 +1,4 @@
 html{
-    /* overflow:hidden; */
     background-color:transparent;
     height:100%;
 }
@@ -21,7 +20,7 @@ body {
     width:fit-content;
     /* min-width:50%;
     min-height:50%; */
-    white-space: pre-wrap;
+    white-space: pre;
     /* line-height: 1.15; */
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -32,7 +31,7 @@ body {
     margin:0 auto;
     display:block;
     margin:auto;
-    text-overflow: clip;
+    /* text-overflow: clip; */
 }
 .canvas_background{
     transition:0.2s;
@@ -119,4 +118,14 @@ body {
 }
 .slider::-webkit-slider-thumb:hover {
     background-color:#ffff00ff;
+}
+
+.dropdown{
+    font-size:12px;
+    width:fit-content;
+    display:block;
+    padding: 3px 3px;
+    border: none;
+    border-radius: 0px;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
