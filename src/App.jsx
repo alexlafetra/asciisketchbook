@@ -157,9 +157,9 @@ function App() {
 
   function convertImage(img){
     //70 char long
-    const pallette = `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `;
     const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
-    // const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
+    const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
+    // const pallette = `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     let newStr = '';
@@ -874,12 +874,17 @@ function App() {
         <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
         <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
         <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
-        <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
-        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:val,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
-        <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
         <Slider maxLength = {20} label = {'line height'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
+     
+        <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
+        {imageRenderer.imageLoaded &&
+        <>
+        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:val,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
+        <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
+        </>
+        }
       </div>
       {/* canvas */}
       <div className = "canvas_container" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {canvasContainerStyle}>
