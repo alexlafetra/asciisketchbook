@@ -5,6 +5,7 @@ import Slider from './components/slider';
 import './App.css'
 import './main.css';
 import Dropdown from './components/dropdown';
+import FilePicker from './components/filepicker';
 
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
   }
   
   let canvasData = settings.presets.house.data.padStart(settings.rows*settings.columns,' ');
+  // let canvasData = '';
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
   const [bufferCanvas,setBufferCanvas] = useState(canvasData);
@@ -63,6 +65,17 @@ function App() {
     endIndex : 0,
     char : currentChar
   });
+
+  const [imageRenderer,setImageRenderer] = useState(
+    {
+      imageLoaded:false,
+      gamma:1.0,
+      contrast:1.0,
+      imageSrc:'test2.png',
+      needToReload:false
+    }
+  );
+
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
@@ -71,6 +84,7 @@ function App() {
   const canvasDimensionsRef = useRef(canvasDimensions);
   const currentCharRef = useRef(currentChar);
   const textClipboardRef = useRef(textClipboard);
+  const imageRendererRef = useRef(imageRenderer);
   //making sure the callback can access "fresh" versions of state data
   useEffect(() => {
     activeCharIndexRef.current = activeCharIndex;
@@ -104,9 +118,20 @@ function App() {
     textClipboardRef.current = textClipboard;
   },[textClipboard]);
 
+  useEffect(() => {
+    imageRendererRef.current = {
+      imageLoaded:imageRenderer.imageLoaded,
+      gamma:imageRenderer.gamma,
+      contrast:imageRenderer.contrast,
+      imageSrc:imageRenderer.imageSrc,
+      needToReload:imageRenderer.needToReload
+    };
+  },[imageRenderer]);
+
   //add keypress event handlers, but only once
   useEffect(() => {
     window.document.addEventListener('keydown', handleKeyPress);
+
     return () => {
       window.document.removeEventListener('keydown', handleKeyPress);
     }
@@ -115,6 +140,79 @@ function App() {
   // for(let i = 0; i<canvasDimensions.height*settings.columns; i++){
   //   canvasData+=' ';
   // }
+
+  function map_range(value, low1, high1, low2, high2) {
+    return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+  }
+  function contrastImage(imgData, contrast){  //input range [-1,1]
+      let d = imgData.data;
+      let intercept = 128 * (1 - contrast);
+      for(var i=0;i<d.length;i+=4){   //r,g,b,a
+          d[i] = d[i]*contrast + intercept;
+          d[i+1] = d[i+1]*contrast + intercept;
+          d[i+2] = d[i+2]*contrast + intercept;
+      }
+      return imgData;
+  }
+
+  function convertImage(img){
+    //70 char long
+    const pallette = `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `;
+    const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
+    // const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    let newStr = '';
+    //load image onto canvas
+    canvas.width = outputDimensions.width;
+    canvas.height = outputDimensions.height;
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+    //get pixel data from canvas
+    let pixelData = ctx.getImageData(0,0,canvas.width,canvas.height,{pixelFormat:"rgba-unorm8"});
+
+    for(let px = 0; px<pixelData.data.length; px+=4){
+      
+      const redChannel = pixelData.data[px];
+      const greenChannel = pixelData.data[px+1];
+      const blueChannel = pixelData.data[px+2];
+      const alphaChannel = pixelData.data[px+3];
+
+      const avg = (redChannel + greenChannel + blueChannel) / 3 * (alphaChannel/255) + (1.0 - alphaChannel/255)*255;
+
+      // https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Pixel_manipulation_with_canvas
+      let grayscaleValue = (0.299*redChannel + 0.587*greenChannel + 0.114*blueChannel) * (alphaChannel/255) + (1.0 - alphaChannel/255)*255;
+      // const grayscaleValue = avg;
+
+      //gamma
+      grayscaleValue = Math.pow(grayscaleValue/255,imageRenderer.gamma)*255;
+      //contrast
+      const intercept = 128 * (1 - imageRenderer.contrast);
+      grayscaleValue = Math.max(Math.min((grayscaleValue*imageRenderer.contrast) + intercept,255),0);
+      const palletteIndex = map_range(grayscaleValue,0,255,0,pallette.length-1);
+
+      newStr+= pallette.charAt(palletteIndex);
+    }
+    setDivContents(newStr);
+  };
+
+  function convertImageToAscii(src){
+    if(typeof src === "string"){
+      const img = new Image;
+      img.onload = function() {
+        convertImage(this);
+      };
+      img.src = src;
+      setImageRenderer({
+        imageLoaded:true,
+        gamma:imageRenderer.gamma,
+        contrast:imageRenderer.contrast,
+        imageSrc:src,
+        needToReload:false
+      });
+    }
+
+  }
 
   function createBackground(){
     let side = '';
@@ -709,21 +807,26 @@ function App() {
     width:'fit-content'
   }
 
+  const loadImage = (file) => {
+    //make sure there's a file here
+    if(!(file === undefined)){
+      //create a file reader object
+      const reader = new FileReader();
+
+      //attach a callback for when the FR is done opening the img
+      reader.onload = (e) => {
+        convertImageToAscii(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  if(imageRenderer.imageLoaded && imageRenderer.needToReload){
+    convertImageToAscii(imageRenderer.imageSrc);
+  }
+
   return (
-    <>
-      {/* canvas */}
-      <div className = "canvas_container" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {canvasContainerStyle}>
-        {(selectionBox.started||selectionBox.finished) &&
-          <div className = "selection_box" style = {selectionBoxStyle}/>
-        }
-        <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" style = {canvasStyle}>
-          {processText()}
-        </div>
-        <div className = "canvas_background" style = {{top:'-'+String(lineHeight)+'em',fontSize:fontSize+'px',width: canvasDimensions.width+2+'ch'}}>
-          {createBackground()}
-        </div>
-      </div>
+    <div className = "app_container">
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
@@ -754,7 +857,6 @@ function App() {
           <div className = "ascii_button" onClick = {(e) => {
                                                             const coords = {x:activeCharIndex%canvasDimensions.width,y:Math.trunc(activeCharIndex/canvasDimensions.width)};
                                                             const newData = paste(textClipboard,divContents,coords,canvasDimensions.width);
-                                                            console.log(newData);                                                           
                                                             setDivContents(newData.data);
                                                           }}>paste (ctrl+v)</div>
         }
@@ -766,17 +868,33 @@ function App() {
                                                               }}}>fill (ctrl+f)</div>
         }
         <div className = "ascii_button" onClick = {(e) => {setDivContents(resizeCanvas({width:canvasDimensions.width+10,height:canvasDimensions.height+5},divContents))}}>extend</div>
-        <Dropdown label = 'presets' callback = {(val) => {setDivContents(settings.presets[val].data);}} defaultValue={'house'} options = {['house','wire']}></Dropdown>
+        <Dropdown label = 'presets' callback = {(val) => {setDivContents(settings.presets[val].data);setCanvasDimensions({height:settings.presets[val].rows,width:settings.presets[val].columns})}} defaultValue={'house'} options = {['house','wire']}></Dropdown>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText());}}>copy contents (with line breaks)</div>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy contents (as a single line)</div>
         <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
-        <ColorPicker label = 'background' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
-        <ColorPicker label = 'text' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
+        <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
+        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:val,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
+        <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
         <Slider maxLength = {20} label = {'line height'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
       </div>
-    </>
+      {/* canvas */}
+      <div className = "canvas_container" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick} style = {canvasContainerStyle}>
+        {(selectionBox.started||selectionBox.finished) &&
+          <div className = "selection_box" style = {selectionBoxStyle}/>
+        }
+        <div className = "highlight_box" style = {highlightBoxStyle}/>
+        <div className = "ascii_canvas" style = {canvasStyle}>
+          {processText()}
+        </div>
+        <div className = "canvas_background" style = {{top:'-'+String(lineHeight)+'em',fontSize:fontSize+'px',width: canvasDimensions.width+2+'ch'}}>
+          {createBackground()}
+        </div>
+      </div>
+    </div>
   )
 }
 

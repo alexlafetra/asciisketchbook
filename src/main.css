@@ -3,34 +3,36 @@ html{
     height:100%;
 }
 body {
-    height:100%;
+    /* height:100%;
     padding: 0;
-    margin: 0;
-    display:flex;
+    margin: 0; */
+    /* display:flex;
     justify-content: center;
-    align-items: center;
+    align-items: center; */
 }
 .app_container{
-    display:block;
-    position:relative;
+    position:absolute;
+    left:0;
+    top:0;
+    display:grid;
+    grid-template-columns: 300px auto;
+    grid-template-areas: "ui canvas";
 }
 .canvas_container{
+    /* margin-left:300px; */
+    margin-top: 100px;
     display:block;
     position:relative;
     width:fit-content;
-    /* min-width:50%;
-    min-height:50%; */
     white-space: pre;
-    /* line-height: 1.15; */
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .ascii_canvas{
     position:relative;
     z-index:1;
     transition:0.2s;
-    margin:0 auto;
+    /* margin:0 auto; */
     display:block;
-    margin:auto;
     /* text-overflow: clip; */
 }
 .canvas_background{
@@ -49,13 +51,19 @@ body {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     background-color:#ffff00;
 }
+
+
 .ui_container{
-    /* position:fixed; */
-    position:absolute;
-    top:100px;
-    left:100px;
-    /* margin-left:-200px;
-    margin-bottom: 200px; */
+    display: block;
+    position: -webkit-sticky; /* Safari */  
+    position: sticky;
+    grid-area: ui;
+    /* margin:40px; */
+    left:40px;
+    top:40px;
+    margin-top:100px;
+    height:fit-content;
+
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size:12px;
 }
@@ -101,9 +109,16 @@ body {
     position:relative;
     height:2.5em;
 }
+.ui_component_container{
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    width:fit-content;
+    display:block;
+    position:relative;
+}
 .slider_label{
     font-family: monospace;
     pointer-events:none;
+        /* height:2.5em; */
 }
 .slider_reset_button:hover{
     background-color:#ffff00ff;
@@ -128,4 +143,16 @@ body {
     border: none;
     border-radius: 0px;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.file_input{
+    font-family: monospace;
+    color:#0000ff;
+    text-decoration: underline;
+    background-color: #ffffff;
+    cursor:pointer;
+    mix-blend-mode: difference;
+}
+.file_input input{
+    display:none;
 }

@@ -39,7 +39,7 @@ function Slider({maxLength,label,callback,min,max,stepsize,defaultValue}){
     return(
         <div className = "slider_container">
             <span className = "slider_label" >{label + ":" + value}</span>
-            {(value != defaultVal) && <span className = "slider_reset_button" style = {{cursor:'pointer'}}onClick = {(e) => {console.log("hey");callback(defaultVal);setValue(defaultVal);}}>[x]</span>}
+            {(value != defaultVal) && <span className = "slider_reset_button" style = {{cursor:'pointer'}}onClick = {(e) => {callback(defaultVal);setValue(defaultVal);}}>[x]</span>}
             <input className = "slider" type = "range" min = {min} max = {max} step = {stepsize} value = {value} onInput  = {callbackFn} style = {sliderStyle}>
             </input>
             <div className = "slider_ascii_display" style = {asciiDisplayStyle}>{progressString}</div>
