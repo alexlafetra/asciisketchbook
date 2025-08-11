@@ -30,13 +30,11 @@ body {
 .ascii_canvas{
     position:relative;
     z-index:1;
-    transition:0.2s;
     /* margin:0 auto; */
     display:block;
     /* text-overflow: clip; */
 }
 .canvas_background{
-    transition:0.2s;
     position:absolute;
     left:-1ch;
     pointer-events: none;
@@ -155,4 +153,31 @@ body {
 }
 .file_input input{
     display:none;
+}
+.image_preview{
+    width:200px;
+}
+
+.number_input{
+    display:flex;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.number_input_button{
+    border-style:none;
+    background-color: transparent;
+    cursor: pointer;
+}
+.number_input_button:hover{
+    background-color:#ffff00ff;
+}
+.number_input_box{
+    border-style:none;
+    background-color: transparent;
+    width:fit-content;
+    max-width:4ch;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.number_input_label{
+    width:80%;
+    margin:auto;
 }

@@ -6,7 +6,7 @@ import './App.css'
 import './main.css';
 import Dropdown from './components/dropdown';
 import FilePicker from './components/filepicker';
-
+import NumberInput from './components/numberinput';
 
 function App() {
 
@@ -51,11 +51,14 @@ function App() {
   const [lineHeight,setLineHeight] = useState(settings.lineHeight);
   const [canvasDimensions,setCanvasDimensions] = useState({width:settings.columns,height:settings.rows});
   const [textSelectable,setTextSelectable] = useState(false);
+  const [asciiPallette,setAsciiPallette] = useState('symbols');
   const [selectionBox,setSelectionBox] = useState({
     started : false,
     finished : false,
     startCoord : {x:0,y:0},
-    endCoord : {x:0,y:0}
+    endCoord : {x:0,y:0},
+    movingText : false,
+    moveBy : {x:0,y:0}
   });
   const [textClipboard,setTextClipboard] = useState({data:'',width:0,height:0});
   const [lineData,setLineData] = useState({
@@ -158,8 +161,14 @@ function App() {
   function convertImage(img){
     //70 char long
     const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
-    const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
+    // const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
     // const pallette = `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `;
+    const pallettes = {
+      symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
+      full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
+      letters:`BWMoahkbdpqwmZOQLCJUYXzcvunxrjftilI `
+    };
+    const pallette = pallettes[asciiPallette];
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     let newStr = '';
@@ -231,17 +240,43 @@ function App() {
   function resizeCanvas(newDims,data){
     const originalDims = canvasDimensionsRef.current;
     let newString = '';
-    for(let r = 1; r<Math.min(originalDims.height,newDims.height); r++){
+    for(let r = 0; r<Math.min(originalDims.height,newDims.height); r++){
       //get the original row
-      let rowString = data.substring((r-1)*originalDims.width,Math.min((r*originalDims.width),(r*newDims.width)));
-      rowString = rowString.padEnd(newDims.width,' ');
+      let rowString = data.substring(r*originalDims.width,(r+1)*originalDims.width);
+      if(newDims.width<originalDims.width)
+        rowString = rowString.substring(0,newDims.width);
+      else
+        rowString = rowString.padEnd(newDims.width,' ');
       newString += rowString;
     }
     newString = newString.padEnd(newDims.width*newDims.height,' ');
     setCanvasDimensions({width:newDims.width,height:newDims.height});
     return newString;
   }
-
+  function startMove(selBox){
+    const newSelBox = {
+      started : selBox.started,
+      finished : selBox.finished,
+      startCoord : selBox.startCoord,
+      endCoord : selBox.endCoord,
+      movingText : true,
+      moveBy : {x:0,y:0}
+    }
+    setSelectionBox(newSelBox);
+    setBufferCanvas(divContents);
+  }
+  function endMove(selBox){
+    const newSelBox = {
+      started : selBox.started,
+      finished : selBox.finished,
+      startCoord : selBox.startCoord,
+      endCoord : selBox.endCoord,
+      movingText : false,
+      moveBy : {x:0,y:0}
+    }
+    let tempCanvas = bufferCanvas;
+    tempCanvas = shiftArea(selBox,{x:selBox.moveBy.x,y:selBox.moveBy.y},tempCanvas,canvasDimensions.width);
+  }
   function startLine(index){
     const line = {
       begun : true,
@@ -409,6 +444,7 @@ function App() {
 
 
   function drawLine(start,end,char,canvas){
+    const canvDims = canvasDimensionsRef.current;
     const steep = Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
     if (steep) {
       [start.x, start.y] = [start.y,start.x];
@@ -435,9 +471,9 @@ function App() {
     let y = start.y;
     for (let x = start.x; x <= end.x; x++) {
       if (steep) {
-        canvas = writeCharacter(x*canvasDimensions.width+y, char, canvas);
+        canvas = writeCharacter(x*canvDims.width+y, char, canvas);
       } else {
-        canvas = writeCharacter(y*canvasDimensions.width+x, char, canvas);
+        canvas = writeCharacter(y*canvDims.width+x, char, canvas);
       }
       err -= dy;
       if (err < 0) {
@@ -589,7 +625,14 @@ function App() {
 
   function handleKeyPress(e){
     //stop the event from bubbling, so this is only called once
-    e.stopPropagation();
+    // e.stopPropagation();
+    if(e.target === document.body){
+    }
+    //u were focused elsewhere
+    else{
+      return;
+    }
+
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
     const activeChar = currentCharRef.current;
@@ -751,7 +794,9 @@ function App() {
     for(let row = 0; row<dimensions.height; row++){
       finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
     }
+    console.log(finalString);
     return finalString;
+
   }
 
   const asciiDisplayStyle = {
@@ -803,8 +848,8 @@ function App() {
     backgroundColor:'transparent',
     width: canvasDimensions.width+'ch',
     lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
-    width:'fit-content'
+    letterSpacing:textSpacing+'px'
+    // width:'fit-content'
   }
 
   const loadImage = (file) => {
@@ -840,7 +885,7 @@ function App() {
         {selectionBox.finished &&
           <div className = 'help_text'>(arrow keys to translate area)</div>
         }
-        <div className = "ascii_button" onClick = {(e) => {setTextSelectable(!textSelectable);}}>selectable [{textSelectable?'X':' '}]</div>
+        {/* <div className = "ascii_button" onClick = {(e) => {setTextSelectable(!textSelectable);}}>selectable [{textSelectable?'X':' '}]</div> */}
         {(selectionBox.started || selectionBox.finished) && 
         <>
         <div className = "ascii_button" onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
@@ -867,13 +912,15 @@ function App() {
                                                                 setDivContents(newData.data);
                                                               }}}>fill (ctrl+f)</div>
         }
-        <div className = "ascii_button" onClick = {(e) => {setDivContents(resizeCanvas({width:canvasDimensions.width+10,height:canvasDimensions.height+5},divContents))}}>extend</div>
+        <NumberInput name = "width" defaultValue = {settings.columns} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents))}}></NumberInput>
+        <NumberInput name = "height" defaultValue = {settings.rows} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents))}}></NumberInput>
         <Dropdown label = 'presets' callback = {(val) => {setDivContents(settings.presets[val].data);setCanvasDimensions({height:settings.presets[val].rows,width:settings.presets[val].columns})}} defaultValue={'house'} options = {['house','wire']}></Dropdown>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText());}}>copy contents (with line breaks)</div>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy contents (as a single line)</div>
         <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
         <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
         <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
         <Slider maxLength = {20} label = {'line height'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
@@ -881,7 +928,9 @@ function App() {
         <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
         {imageRenderer.imageLoaded &&
         <>
-        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:val,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
+        <img className = "image_preview" src = {imageRenderer.imageSrc}/>
+        <Dropdown label = 'ascii pallette' callback = {(val) => {setAsciiPallette(val);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={'symbols'} options = {['full','symbols','letters']}></Dropdown>
+        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }

@@ -9,25 +9,14 @@ function FilePicker({title,callback}){
         }
         setFilename(e.target.value);
     }
-    if(filename !== null){
-        return(
-            <div className = "ui_component_container">
-            <label className = "file_input">
-            <input className = "button" type = "file" accept="image/png, image/jpeg, image/svg+xml" onChange = {selectFileCallback}></input>
-            {title+': ['+filename.split('C:\\fakepath\\')[1]+']'}
-            </label>
-            </div>
-        );
-    }
-    else{
-        return(
-            <div className = "ui_component_container">
-            <label className = "file_input">
-            <input className = "button" type = "file" accept="image/png, image/jpeg, image/svg+xml" onChange = {selectFileCallback}></input>
-            {title+': [upload an image]'}
-            </label>
-            </div>
-        );
-    }
+    return(
+        <div className = "ui_component_container">
+        <label className = "file_input">
+        <input className = "button" type = "file" accept="image/png, image/jpeg, image/svg+xml, image/bmp" onChange = {selectFileCallback}></input>
+        {(filename !== null) && (title+': ['+filename.split('C:\\fakepath\\')[1]+']')}
+        {(filename === null) && title+': [upload an image]'}
+        </label>
+        </div>
+    );
 }
 export default FilePicker;
