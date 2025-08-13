@@ -21,28 +21,35 @@ function App() {
     textColor : '#0000ff',
     activeHighlight : '#ffff00',
     advanceWhenCharacterEntered : false,
-    presets : {
-      house: {
+    presets : [
+      {
         title: 'house',
         data : `                                                                                                                                                                                                                                   #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                 .           |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                 '   #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
         rows : 25,
         columns : 50
       },
-      wire: {
+      {
         title:'wire',
         data : `                                                             #\\                                                 .\\                        y                        \\\\                      /.           _.            \\\\                    //            . \` --.       \\ \\                  ./              ._   \`\\\`\`\`-_  \\ \\__.             ;/              \`\`\`-_   \\    \`\`\`\\ \\ \\-.          / *                   \`\`\`\`\`-_  \\  \\ \\ \\ \\-,      : /                            \`\`\`\`.\\ \\ \\ \\ \\--. / ;                                 / y_. \\ \\ \\. \\ /                                 / /   \\_\\ \\ \\\\ \\ \`\`\`\`-_                          //\`       \\_\\ \\\\ \\      \`.\`\`\`-_                  //            \`-\`\\ \\\`\`\`-_  \\     \`\`\`             {.                 \\ ;    \`\`\`---_                                     \\ \\          \`\`\`\`                                  \`\\                                                 \`}                                                                                                                                                                                                                                                                                                                                                                            `,
         rows : 25,
         columns : 50
+      },
+      {
+        title : 'star',
+        data :`                                                                                                                                                                                                                                                                                                                                /                                                                                                                                                                |                                     .|                                               //                                                                                                               ||                                  /. |                                             ../                                   \\\\                                                                          |.|                                 ..  |                                           .. /                                    \\ .\\\\\\                                               ;                      |. |                               .    |                                        /..  /                                      \\ .  \\\\\\\\                                      [%%%%#                     |.  |                             /.     |                                      /..   /                                        \\ .     \\\\\\                               l%/~\' ,%)                      |.   |                           /.     |                                     ...    /                                          \\\\.       \\\\\\\\                         /%~    1~%%                     |.     |                         ..      |                                  /..      /                                             \\.          \\\\\\\\                   %%,       ]%\\\"                    |.     |                        .        |                                /..       /                                               \\..            \\\\               _%         \`/%%                     .       |                     /.         |                              /..        /                                                 \\ .       %.*     &0 {%?%%% <[%%           ;%%%                   |.       |                    /.          |                           /...         /                                                   \\ .      %%%%%%0(}%0^       >              %%,}                  |.        |                  ..           |                         /..           /                                                     \\ .       %%<                             \"%%%%%%*|+(/%%%*%\\&\\1|.          |               /.             |                       /..            /                                                       \\ .       >%<                                                 |.  [%%%%1:}|              /.              |                     /..             /                                                         \\\\.       \"%%                                         ^l{%%:|.) ,%<%%%%%%%|%;%%%_ -    /.               |                  //..              /                                                            \\.         %%%                                   %%?+%}   |.            |^%%}% \"    ..%%>.            |                /...     >         /                                                              \\.         l%%#                            ]&%\"         |.              |        /. ,[#,     ~  >*+: |              /..       1%%(      /                                                                \\.          \\%                         !%%             |.               |      /.           \\~%{!   |   ,%%l    //..       >%>\`  %    /                                                                  \\.         *                           #%!            |.               |     /.                   | .?l\"     //..%<     \' /%;    %[                                                                      \\..      ,%                            %%.          |.                 |  /..                    |     ^] /...        1&%%~      {%                                                                      \\ .     0\`       :,%]!)*             %%            |.                 | /.                      |     //..  ?#                    <                                                                      \\\\.    *       ;%%%~&%%(0          ,%%_\\\\        |.                   ..                       |   //..         \\*l               %                                                                       \\.   %      {%\\      >%%%)<:}    ,%!   \\\\\\     |.                                            | //..              \'%              ^&                                                                      \\.  %     :\\           \"?%%%%%  %*       \\\\\\ |.                                             |/..                (%,                <_                                                                    \\. %    #%                \`<%%%%/          \\\\.                                                                %%<                     *                                                                  \\ %   ~%;                    %%                                                                             \"%                        \`%                                                                 0   !%                                                                                                    %%%%+%%*]\\{#>%%      ^\`       ?                                                               &  __                                                                                                             /       %    :>   #^%%&%\\                                                           <*: #% .                                                                                                           /         0    [         \` *                                                         ~/  %?\\ .                                         ..............---............---   ...                          /           >   ,+                                                                    %;-%%  \\ .                                    ....... .............               ------.....-                   /             !   %                                                                    %-%_    \\ .                               .....//..                                         ::..                /               !  %                                                                    \'%%      ..                              .... ...    >                                        ::\\\\             /                 0 <                                                                    %%%      \\ .                            ... ..                                                  ::\\\\          /                  :& ~                                                                    a&       \\..                          .....                                                      :::\\       /.                   ; %                                                                    %         \\..                       .. .                                                          ..:       ....                  l/%                                                                  %%          . .                    ... .                                                            . .        ....                 %%                                                                   %           . .                  . .. .          ..                                                . .          ...\\               _%                                                                   %            . .                  . .. .      ... .....                                             ..            ...\\              %\'                                                                  %             . .                ..  . .    ..     ssss....                                         ...             ..\\\\             l                                                                 \`/              \\.               ... .. ..                ss                                          ..              //                                                                                \'               \\ .              .;.....     ......                                          sssssss  .             //                 :                                                                %                \\ .             |;..           lll##...          s                     sssss         .           //                   |                                                                1                 \\ .            |;.        . . ll#######.                                           .          //                                                                                      >                  / .         ;;|; .         ... ###### //                      ss     .........    .        //                                                                                       0                 //..           ; ;,.      ,     .....\\./#                          .... 000####.           //                                                                                         .               //..             ;.;,.                                                .000.#####..#         /\\                                                                                                         / .                ;;,.                                                  ..#s#### $ #        ..\\\\                                                                                                     //..                 ; ,.                                               ... \\0,###s0 . .         ..\\\\                                                                                                 //..                   ;.,.            # #                                   ... ,,,,# .             ...\\\\                                                             .                               /..                     ;., .             #                                      ,,,,,  .                ..\\\\                                                                                         //.                        ;.,.                                                     ,,,,  .                  ...\\\\                                                                                    //..                         ;.,.                                                          .                      ..\\\\                                                                                 /..                           ;.,.                                   x             # #      .                        ..\\\\                                                                             //.                             ;.,.                      s s                        #       .                           ...\\\\                                                                        //..                               ;, .                      s ss           s          #       .                              ..\\\\                                                                     /..                                \\;. .                       ssss         s           .      .                                 ..\\\\                                                                 //.                                    .,.                          ss sss                       .                                  ///\\\\                                                             //..                                     #; .                                                     .                           ////////                                                                 /..                                       .;,.                                                     .                   ////////                                                                       /..                                         #; ,.                                                   .            ////////                                                                             //.                                           #.;,.                                    .             .        /////                                   l                                                /..            /                                #;;,.               (((                              .         \\                                       \\                                              /..              (%      -----/                   #;; ,.           ((((((00000   00                   .           \\                                     %&                                            //.     --------- !%%------     /.                  ## ;, .               s  ssssssss000 \\             .            \\                                     %0                                           ---------          |%%%.         /.                   \\##;, .                                          .             \\                                    0{%%                                                              |%%%         /.                    \\\\#;, .                oooooo                 ..               \\                                   % !%                                                              1%\"%%        /.                      \\#;; .                                    ..                 \\                                  %#  %.                                                            %%\\  *)      / .                       \\\\,; .                                 ..                   \\                                 -%   >%                                                           .%%   ~%      /.                          \\\\\\ .                              ..                      \\                                %     %                                                           :%%    <!     /.                             \\\\...                         ..                        \\                               {)     %>                  #                                        ! ~    \">    /.                               \\\\\\....                .....                           \\                              -[      %>               \"}                                          ,%      %/   .                                  \\\\...,.       ......                                \\                              [^      ]%             *%%%                                          {%\"       +\"                                           .......                    \\\\                \\                              %        %!         %%%%%%#                                          !%%\'        %            \'%%%%%/%%%%*~                                           |  \\\\               \\                             %         %# +%%%#^%    \\,                                            %%,         %%;% 1\"_%%%\\}     ^%%%*                                            |     \\\\             \\                            %          l_*\"         !%                                             %%,          ;\'?/}[]         &&%~                                             |        \\\\                                       %[                      \`%                                 \`<?%)%%[%%%%]                            0%>                                              |           \\  >     .%%% \"  >.                 1%%%?                     <%\`                         \\%}<#%%%%%%%&%_ > >                             ~%,                                              |                %%%%%%%%%\']!\'     \'%~1%(%%%/> l                          %?\'                             #.0%% ^                                      %*                /\\                            |                \\ ^\'%%}_%%%%%%%%:                                       !]1                                     +|%<^                               ]%%                // \\.                         ||                  \\\\     \\ ; < %>%%?0                                   <~                                           \')%}                            %?,             ///    \\.                       |                      \\\\   \\       \' :\\%%%%                            \"%%0                                                1%%                         %%\`           //       \\.                      |                         \\   \\           \`)%%%%                          ]%{,                                                   \`/%                      l0|        //          \\.                    |                           \\\\\\\\              \`%&>_                         %%                                                      %                       **%%%%#!              \\ .                  |                              \\\\            ~%]\"                             %%                                                     %%                            :(%%%            \\ .                |                                 \\       \" %0                                 (%%                                                     %;           *%%%%              %%%%%%\`]      \\ .               |                                   \\  1\"%%%              %%%%%^ \' ,%%%%         %%)                                                    **        _[%%#    %%               & %+%%(%   \\ .                               ^ |[#%&%%#^%%%%%%%%%%%%l         /%%%                   /]%%0!   [%\\                                                    %~      \'%%:     //   ^%%)((#:\`  \'     ^,0%%%%%1 ,>  . }\"\'          _]\\%%%%]<1>&/,^  )%%|%%%%>             ~\\%^                               %%%%%%_                                                   _%.    }%%%%   //           [0\"  ^%%         .%%%%%/%%%%%%%]%l%%%%%#%%*                        %%%%%)%{%%?:                                         \\(                                                 . %   \'%%%%l ///                                            |                                                                                                                                          /. %1{%%%   //                                      \\.      |                                                                                                                                           .  -%%%%[!#                                         \\.     |                                                                                                                                           /.  [%%^.                                             \\.   |                                                                                                                                           /.  //.                                                \\.   |                                                                                                                                           ////                                                    \\. |                                                                                                                                           //                                                       \\.|                                                                                                                                                                                                      |                                                                                                                                                                                                                                                                                                                     aaaaaaaaaaaaaaaaa`,
+        rows:100,
+        columns :200
       }
-    },
+    ],
   }
   
-  let canvasData = settings.presets.house.data.padStart(settings.rows*settings.columns,' ');
+  let canvasData = settings.presets[0].data.padStart(settings.rows*settings.columns,' ');
   // let canvasData = '';
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(canvasData);
   const [bufferCanvas,setBufferCanvas] = useState(canvasData);
   const [currentChar,setCurrentChar] = useState('a');
+  const [blankChar,setBlankChar] = useState(' ');
   const [activeCharIndex,setActiveCharIndex] = useState(0);
   const [backgroundColor,setBackgroundColor] = useState(settings.backgroundColor);
   const [textColor,setTextColor] = useState(settings.textColor);
@@ -52,6 +59,7 @@ function App() {
   const [canvasDimensions,setCanvasDimensions] = useState({width:settings.columns,height:settings.rows});
   const [textSelectable,setTextSelectable] = useState(false);
   const [asciiPallette,setAsciiPallette] = useState('symbols');
+  const [drawingMode,setDrawingMode] = useState('line');
   const [selectionBox,setSelectionBox] = useState({
     started : false,
     finished : false,
@@ -78,6 +86,13 @@ function App() {
       needToReload:false
     }
   );
+
+  const [brushData,setBrushData] = useState(
+    {
+      drawing:false,
+      size:1
+    }
+  )
 
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
@@ -161,8 +176,6 @@ function App() {
   function convertImage(img){
     //70 char long
     const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
-    // const pallette = `$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `;
-    // const pallette = `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `;
     const pallettes = {
       symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
       full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
@@ -333,98 +346,186 @@ function App() {
   }
 
   function handleMouseUp(e){
-    const newIndex = getClickIndex(e);
-    if(lineData.begun){
-      if(lineData.moved){
-        endLine(newIndex);
-      }
-      else{
-        const line = {
-          begun : false,
-          moved : false,
-          startIndex : lineData.startIndex,
-          endIndex : null,
-          char : currentChar
-        };
-        setLineData(line);
-      }
+    switch(drawingMode){
+      case 'line':
+        const newIndex = getClickIndex(e);
+        //if you already started a line
+        if(lineData.begun){
+          if(lineData.moved){
+            endLine(newIndex);
+          }
+          else{
+            const line = {
+              begun : false,
+              moved : false,
+              startIndex : lineData.startIndex,
+              endIndex : null,
+              char : currentChar
+            };
+            setLineData(line);
+          }
+        }
+        break;
+      case 'brush':
+        setBrushData({
+          drawing:false,
+          size:1
+        });
+        break;
     }
     if(selectionBox.started){
       const newBox = {
         started : false,
         finished : true,
         startCoord : selectionBox.startCoord,
-        endCoord : getClickCoords(e)
+        endCoord : getClickCoords(e),
+        movingText : false,
+        moveBy : {x:0,y:0}
+      };
+      setSelectionBox(newBox);
+    }
+    //if you're done selecting, apply the transformation u set
+    else if(selectionBox.finished){
+      const newBox = {
+        started : false,
+        finished : false,
+        startCoord : selectionBox.startCoord,
+        endCoord : getClickCoords(e),
+        movingText : false,
+        moveBy : {x:0,y:0}
       };
       setSelectionBox(newBox);
     }
   }
 
   function handleMouseDown(e){
-    //selectionbox
+    //moving selectionbox
+    if(selectionBox.finished){
+      const newBox = {
+        started : false,
+        finished : true,
+        startCoord : selectionBox.startCoord,
+        endCoord : selectionBox.endCoord,
+        movingText : true,
+        moveBy : selectionBox.moveBy
+      };
+      setSelectionBox(newBox);
+      //store this version of div contents
+      setBufferCanvas(divContents);
+      return;
+    }
+    //starting selectionbox
     if(e.shiftKey){
       const newBox = {
         started : true,
         finished : false,
         startCoord : getClickCoords(e),
-        endCoord : getClickCoords(e)
+        endCoord : getClickCoords(e),
+        movingText : false,
+        moveBy : {x:0,y:0}
       };
       setSelectionBox(newBox);
+      //store this version of div contents
+      setBufferCanvas(divContents);
     }
     else{
-      //start drawing a line
       const newIndex = getClickIndex(e);
-      startLine(newIndex);
+      switch(drawingMode){
+        case 'line':
+          //start drawing a line
+          startLine(newIndex);
+          break;
+        case 'brush':
+          setBrushData({
+            drawing:true,
+            size:brushData.size
+          });
+          setDivContents(writeCharacter(newIndex,currentChar,divContents));
+          break;
+      }
       //cancel the selection box, if there was one
       const newBox = {
         started : false,
         finished : false,
         startCoord : getClickCoords(e),
-        endCoord : getClickCoords(e)
+        endCoord : getClickCoords(e),
+        movingText : false,
+        moveBy : {x:0,y:0}
       };
       setSelectionBox(newBox);
     }
   }
   function handleMouseMove(e){
-    if(lineData.begun){
-      const newIndex = getClickIndex(e);
-      //if the index didn't change, you haven't moved
-      if(newIndex === lineData.startIndex){
-        return;
-      }
-      const tempCanvas = bufferCanvas;
-      const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
-      const coords = {x:newIndex%canvasDimensions.width,y:Math.trunc(newIndex/canvasDimensions.width)};
-      
-      const line = {
-        begun : true,
-        moved : true,
-        startIndex : lineData.startIndex,
-        endIndex : newIndex,
-        char : currentChar
-      };
-      setLineData(line);
-      setDivContents(drawLine(start,coords,currentChar,tempCanvas));
+    const newIndex = getClickIndex(e);
+    switch(drawingMode){
+      case 'line':
+        if(lineData.begun){
+          //if the index didn't change, you haven't moved
+          if(newIndex === lineData.startIndex){
+            return;
+          }
+          const tempCanvas = bufferCanvas;
+          const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
+          const coords = {x:newIndex%canvasDimensions.width,y:Math.trunc(newIndex/canvasDimensions.width)};
+          
+          const line = {
+            begun : true,
+            moved : true,
+            startIndex : lineData.startIndex,
+            endIndex : newIndex,
+            char : currentChar
+          };
+          setLineData(line);
+          setDivContents(drawLine(start,coords,currentChar,tempCanvas));
+        }
+        break;
+      case 'brush':
+        if(brushData.drawing){
+          setDivContents(writeCharacter(newIndex,currentChar,divContents));
+        }
+        break;
     }
     if(selectionBox.started){
       let newBox;
+      //extend selbox
       if(e.shiftKey){
         newBox = {
           started : true,
           finished : false,
           startCoord : selectionBox.startCoord,
-          endCoord : getClickCoords(e)
+          endCoord : getClickCoords(e),
+          movingText : false,
+          moveBy : {x:0,y:0}
         };
       }
+      //cancel it
       else{
         newBox = {
           started : false,
           finished : false,
           startCoord : selectionBox.startCoord,
-          endCoord : getClickCoords(e)
+          endCoord : getClickCoords(e),
+          movingText : false,
+          moveBy : {x:0,y:0}
         };
       }
       setSelectionBox(newBox);
+    }
+    //continue moving
+    else if(selectionBox.movingText){
+      const coords = getClickCoords(e);
+      const width = Math.abs(selectionBox.startCoord.x-selectionBox.endCoord.x);
+      const height = Math.abs(selectionBox.startCoord.y-selectionBox.endCoord.y);
+      const newBox = {
+          started : false,
+          finished : true,
+          startCoord : selectionBox.startCoord,
+          endCoord : selectionBox.endCoord,
+          movingText : true,
+          moveBy : {x:coords.x - selectionBox.startCoord.x, y:coords.y - selectionBox.startCoord.y}
+      };
+      setSelectionBox(newBox);
+      setDivContents(shiftArea(newBox,newBox.moveBy,bufferCanvas,canvasDimensions.width,true));
     }
   }
 
@@ -520,15 +621,16 @@ function App() {
     const colIndex = index % canvasDimensions.width;
     if(amount>0){
       for(let i = (canvasDimensions.height); i>rowIndex; i--){
-        setCharacter(i*canvasDimensions.width+colIndex,data.charAt((i-1)*canvasDimensions.width+colIndex),data);
+        data = writeCharacter(i*canvasDimensions.width+colIndex,data.charAt((i-1)*canvasDimensions.width+colIndex),data);
       }
-      setCharacter(rowIndex*canvasDimensions.width+colIndex,' ');
+      data = writeCharacter(rowIndex*canvasDimensions.width+colIndex,' ');
     }
     else{
       for(let i = rowIndex; i<(canvasDimensions.height-1); i++){
-        setCharacter(i*canvasDimensions.width+colIndex,data.charAt((i+1)*canvasDimensions.width+colIndex),data);
+        data = writeCharacter(i*canvasDimensions.width+colIndex,data.charAt((i+1)*canvasDimensions.width+colIndex),data);
       }
     }
+    setDivContents(data);
   }
   function copyArea(startCoord,endCoord,data,dataWidth){
     let tempData = data;
@@ -549,7 +651,7 @@ function App() {
     //grab the rest of it
     return {data:copyStr,width : width, height: bottomR.y - topL.y};
   }
-  function cutArea(startCoord,endCoord,data,dataWidth,fillCharacter){
+  function cutArea(startCoord,endCoord,data,dataWidth,fillCharacter,preserveOriginalArea){
     let tempData = data;
     let topL = {x:Math.min(startCoord.x,endCoord.x),y:Math.min(startCoord.y,endCoord.y)};
     let bottomR = {x:Math.max(startCoord.x,endCoord.x),y:Math.max(startCoord.y,endCoord.y)};
@@ -568,7 +670,12 @@ function App() {
       const cutStart = rowStart+topL.x;
       const cutEnd = cutStart+width;
       const rowEnd = rowStart+dataWidth;
-      newStr += tempData.substring(rowStart,cutStart)+blankStr+tempData.substring(cutEnd,rowEnd);
+      if(preserveOriginalArea){
+        newStr += tempData.substring(rowStart,rowEnd);
+      }
+      else{
+        newStr += tempData.substring(rowStart,cutStart)+blankStr+tempData.substring(cutEnd,rowEnd);
+      }
       cutStr += tempData.substring(cutStart,cutEnd);
     };
     //grab the rest of it
@@ -594,7 +701,7 @@ function App() {
     return newData;
   }
 
-  function shiftArea(coords,direction,data,dataWidth){
+  function shiftArea(coords,direction,data,dataWidth,preserveOriginalArea){
     let topL = {x:Math.min(coords.startCoord.x,coords.endCoord.x),y:Math.min(coords.startCoord.y,coords.endCoord.y)};
     let bottomR = {x:Math.max(coords.startCoord.x,coords.endCoord.x),y:Math.max(coords.startCoord.y,coords.endCoord.y)};
 
@@ -636,7 +743,7 @@ function App() {
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
     const activeChar = currentCharRef.current;
-    const textData = divContentsRef.current;
+    let textData = divContentsRef.current;
     const line = lineDataRef.current;
     const bufCanvas = bufferCanvasRef.current;
     const selection = selectionBoxRef.current;
@@ -677,10 +784,11 @@ function App() {
           setCurrentChar(e.key);
           return;
         }
-        setCharacter(index,e.key,textData);
+        textData = writeCharacter(index,e.key,textData);
         if(settings.advanceWhenCharacterEntered && (index%canvDims.width)<(canvDims.width-1)){
           setActiveCharIndex(index+1);
         }
+        setDivContents(textData);
       }
       //if you are drawing a line, redraw it with the new character
       else if(line.moved){
@@ -703,14 +811,16 @@ function App() {
       setCharacter(index,' ',textData);
     }
     else if(e.key === 'ArrowRight'){
-      if((selection.started || selection.finished) && checkMove(selection,{x:1,y:0},canvDims)){
+      if((selection.movingText) && checkMove(selection,{x:1,y:0},canvDims)){
         setDivContents(shiftArea(selection,{x:1,y:0},textData,canvDims.width));
         setSelectionBox(
           {
             startCoord:{x:selection.startCoord.x+1,y:selection.startCoord.y},
             endCoord:{x:selection.endCoord.x+1,y:selection.endCoord.y},
             started : selection.started,
-            finished : selection.finished
+            finished : selection.finished,
+            movingText : true,
+            moveBy : {x:selection.moveBy.x+1,y:selection.moveBy.y}
           }
         );
         return;
@@ -729,7 +839,9 @@ function App() {
             startCoord:{x:selection.startCoord.x-1,y:selection.startCoord.y},
             endCoord:{x:selection.endCoord.x-1,y:selection.endCoord.y},
             started : selection.started,
-            finished : selection.finished
+            finished : selection.finished,
+            movingText : true,
+            moveBy : {x:selection.moveBy.x-1,y:selection.moveBy.y}
           }
         );
         return;
@@ -748,7 +860,9 @@ function App() {
             startCoord:{x:selection.startCoord.x,y:selection.startCoord.y-1},
             endCoord:{x:selection.endCoord.x,y:selection.endCoord.y-1},
             started : selection.started,
-            finished : selection.finished
+            finished : selection.finished,
+            movingText : true,
+            moveBy : {x:selection.moveBy.x,y:selection.moveBy.y-1}
           }
         );
         return;
@@ -767,7 +881,9 @@ function App() {
             startCoord:{x:selection.startCoord.x,y:selection.startCoord.y+1},
             endCoord:{x:selection.endCoord.x,y:selection.endCoord.y+1},
             started : selection.started,
-            finished : selection.finished
+            finished : selection.finished,
+            movingText : true,
+            moveBy : {x:selection.moveBy.x,y:selection.moveBy.y+1}
           }
         );
         return;
@@ -794,7 +910,6 @@ function App() {
     for(let row = 0; row<dimensions.height; row++){
       finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
     }
-    console.log(finalString);
     return finalString;
 
   }
@@ -814,12 +929,12 @@ function App() {
   const selectionBoxStyle = {
     width:String(Math.abs(selectionBox.startCoord.x - selectionBox.endCoord.x))+'ch',
     height:String(Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*lineHeight)+'em',
-    left:Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x) + 'ch',
-    top:String(Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)*lineHeight) + 'em',
+    left:(Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x) + 'ch',
+    top:String((Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y)*lineHeight) + 'em',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
     fontSize:fontSize+'px',
-    borderColor:textColor
+    borderColor:textColor,
   }
 
   const highlightBoxStyle = {
@@ -831,7 +946,7 @@ function App() {
     letterSpacing:textSpacing+'px',
     fontSize:fontSize+'px',
     backgroundColor:'#ffff00ff',
-    position:'absolute'
+    position:'absolute',
   };
 
   const canvasContainerStyle = {
@@ -842,7 +957,7 @@ function App() {
 
   const canvasStyle = {
     userSelect : textSelectable?'default':'none',
-    cursor:'pointer',
+    cursor:selectionBox.finished?'grab':'pointer',
     fontSize:fontSize+'px',
     color:textColor,
     backgroundColor:'transparent',
@@ -885,7 +1000,6 @@ function App() {
         {selectionBox.finished &&
           <div className = 'help_text'>(arrow keys to translate area)</div>
         }
-        {/* <div className = "ascii_button" onClick = {(e) => {setTextSelectable(!textSelectable);}}>selectable [{textSelectable?'X':' '}]</div> */}
         {(selectionBox.started || selectionBox.finished) && 
         <>
         <div className = "ascii_button" onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
@@ -912,12 +1026,12 @@ function App() {
                                                                 setDivContents(newData.data);
                                                               }}}>fill (ctrl+f)</div>
         }
-        <NumberInput name = "width" defaultValue = {settings.columns} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents))}}></NumberInput>
-        <NumberInput name = "height" defaultValue = {settings.rows} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents))}}></NumberInput>
-        <Dropdown label = 'presets' callback = {(val) => {setDivContents(settings.presets[val].data);setCanvasDimensions({height:settings.presets[val].rows,width:settings.presets[val].columns})}} defaultValue={'house'} options = {['house','wire']}></Dropdown>
+        <NumberInput name = "width" defaultValue = {canvasDimensions.width} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents))}}></NumberInput>
+        <NumberInput name = "height" defaultValue = {canvasDimensions.height} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents))}}></NumberInput>
+        <Dropdown label = 'presets' callback = {(val) => {const newPreset = settings.presets.find((element) => element.title === val);setDivContents(newPreset.data);setCanvasDimensions({height:newPreset.rows,width:newPreset.columns})}} defaultValue={'house'} options = {settings.presets.map((n) => n.title)}></Dropdown>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText());}}>copy contents (with line breaks)</div>
         <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy contents (as a single line)</div>
-        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
+        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,blankChar);setDivContents(canvasData);}}>clear</div>
         <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
         <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
         

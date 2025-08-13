@@ -24,6 +24,7 @@ body {
     display:block;
     position:relative;
     width:fit-content;
+    height:fit-content;
     white-space: pre;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
