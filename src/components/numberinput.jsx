@@ -1,26 +1,39 @@
 import { NumberField } from '@base-ui-components/react/number-field';
 import { useState } from 'react'
 
-function NumberInput({name,value,min,max,callback}){
+function NumberInput({name,value,min,max,inputCallback,buttonCallback}){
     // const [value,setValue] = useState(defaultValue);
-    const handleValueChange = (newValue,event) => {
-        callback(newValue);
-        // setValue(newValue);
+    const handleButtonChange = (newValue,event) => {
+        if(event === undefined){
+            return;
+        }
+        //only react to PointerEvents
+        if(event.type === 'pointerdown'){
+            buttonCallback(newValue);
+        }
     }
     const handleInputChange = (e) => {
-        let val = parseInt(e.target.value);
+        e.stopPropagation();
+        let val;
+
+        //if NaN is passed, it means the textbox is empty
+        //and u should just pretend it's the min value
+        if(e.target.value === '')
+            val = min;
+        else
+            val = parseInt(e.target.value);
+
         if(val > max){
             val = max;
         }
         else if(val < min){
             val = min;
         }
-        callback(val);
-        // setValue(val);
+        inputCallback(val);
     }
 
     return(
-    <NumberField.Root className = "number_input_container" min = {min} max = {max} name = {name} value = {value} onValueChange = {handleValueChange}>
+    <NumberField.Root className = "number_input_container" min = {min} max = {max} name = {name} value = {value} onValueChange = {handleButtonChange}>
     {/* <NumberField.ScrubArea>
         <NumberField.ScrubAreaCursor />
     </NumberField.ScrubArea> */}

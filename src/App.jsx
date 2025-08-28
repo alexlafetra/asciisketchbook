@@ -59,6 +59,12 @@ function App() {
         data:`                                 /--/+---------      .    ..                                                          |  | ........ /    \`\`\`..........                              ________________________/_/ .._....._/___\`_\`...\`\` \`\`\`....\`\` \`\`                 __--^^^  \\             _______                    \\ \`\`\`\`\`\`\`\`  \`\`\`\`\`\`     \`\`\`\`\`\`\`\`\`\`  <.........|..       ... )**====). __   __  __ - ---|  \`\`        \`              ....... ^^--;;;../ ..... .... /**====/...\\          \\-----/         ..... ............  ..           \`\`^^^\`\`\`\`\`^^^^\`\`\`\`\`\`\`\`^^T^\\\\__________\\^^\`^ \`\` ............  ....                                             \\--.-------       \`\`\`\`\`\`\`\`\`\`   \`\`                                                                          \`\`  \`\`                           `,
         rows:9,
         columns:86
+      },
+      {
+        title: 'test',
+        data:`                                                                                                                                                                                                                                   #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                 .           |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                 \'   #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
+        rows:25,
+        columns:50
       }
     ],
   }
@@ -80,6 +86,14 @@ function App() {
   const [asciiPallette,setAsciiPallette] = useState('symbols');
   const [drawingMode,setDrawingMode] = useState('brush');
   const [showAbout,setShowAbout] = useState(false);
+  const [escapeTextBeforeCopying,setEscapeTextBeforeCopying] = useState(true);
+  const [copyTextWithLineBreaks,setCopyTextWithLineBreaks] = useState(false);
+  const [blendTransparentAreas,setBlendTransparentAreas] = useState(true);
+  const [canvasDimensionSliders,setCanvasDimensionSliders] = useState(
+    {
+      width:settings.columns,height:settings.rows
+    }
+  );
   const [selectionBox,setSelectionBox] = useState({
     started : false,
     finished : false,
@@ -177,6 +191,8 @@ function App() {
     }
   }, []);
 
+  const commandKey = useRef(false);
+
   function map_range(value, low1, high1, low2, high2) {
     return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
   }
@@ -189,6 +205,27 @@ function App() {
           d[i+2] = d[i+2]*contrast + intercept;
       }
       return imgData;
+  }
+
+  function copyText(data,dimensions){
+    if(escapeTextBeforeCopying)
+      data = escapeTextData(data);
+    if(copyTextWithLineBreaks)
+      data = addLineBreaksToText(data,dimensions);
+    navigator.clipboard.writeText(data);
+  }
+
+  function escapeTextData(data){
+    //u need to handle: ` ' " and \
+    //first, \
+    data = data.replace(/\\/g, '\\\\');
+    //then, `
+    data = data.replace(/\`/g, '\\\`');
+    //then, '
+    data = data.replace(/\'/g, '\\\'');
+    //then, "
+    data = data.replace(/\"/g, '\\\"');
+    return data;
   }
 
   function convertImage(img){
@@ -391,8 +428,8 @@ function App() {
     //moving selectionbox
     if(selectionBox.finished){
       const coords = getClickCoords(e);
-      const topL = {x:Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x),y:Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)};
-      const bottomR = {x:Math.max(selectionBox.startCoord.x,selectionBox.endCoord.x),y:Math.max(selectionBox.startCoord.y,selectionBox.endCoord.y)};
+      const topL = {x:Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x,y:Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y};
+      const bottomR = {x:Math.max(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x,y:Math.max(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y};
       if(coords.x < bottomR.x && coords.x > topL.x && coords.y < bottomR.y && coords.y > topL.y){
         const newBox = {
           started : false,
@@ -404,7 +441,11 @@ function App() {
         };
         setSelectionBox(newBox);
         //store this version of div contents
-        setBufferCanvas(divContents);
+        if(selectionBox.moveBy.x || selectionBox.moveBy.y){
+
+        }
+        else
+          setBufferCanvas(divContents);
         return;
       }
     }
@@ -492,14 +533,14 @@ function App() {
             //usually, dist is between 1 and 2
             const distance = Math.sqrt((distX*distX)+(distY*distY));
             //map distance to a thickness (from 0, brushSize)
-            brushSize = Math.max(Math.trunc(map_range(distance,10,0,0,brushSize)),0);
+            brushSize = Math.max(Math.trunc(map_range(distance,0,20,brushSize,0)),0);
           }
           //if there's no other coordinate, just fill circles
           if(brushData.lastCoordinate === undefined){
             setDivContents(fillCircle(coords.x,coords.y,brushSize,currentChar,divContents,canvasDimensions));
           }
           else{
-            setDivContents(connectCircles({x:brushData.lastCoordinate.x,y:brushData.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize,currentChar,divContents,canvasDimensions));
+            setDivContents(drawCirclesAlongPath({x:brushData.lastCoordinate.x,y:brushData.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize,currentChar,divContents,canvasDimensions));
           }
           setBrushData({
             drawing:true,
@@ -752,7 +793,8 @@ function App() {
     }
     setDivContents(data);
   }
-  function connectCircles(A,B,radius,character,data,dimensions){
+  //draws circles along a path!
+  function drawCirclesAlongPath(A,B,radius,character,data,dimensions){
     let start;
     let end;
     if(A.x<B.x){
@@ -782,7 +824,7 @@ function App() {
     if(start.x == end.x){
       for(let step = start.y; step<end.y; step+=(radius/2)){
         const x = start.x;
-        const y = step;
+        const y = Math.trunc(step);
         data = fillCircle(x,y,radius,character,data,dimensions);
       }
       return data;
@@ -790,7 +832,7 @@ function App() {
     //if it's a horizontal line
     else if(start.y == end.y){
       for(let step = start.x; step<end.x; step+=(radius/2)){
-        const x = step;
+        const x = Math.trunc(step);
         const y = start.y;
         data = fillCircle(x,y,radius,character,data,dimensions);
       }
@@ -874,7 +916,23 @@ function App() {
       const pasteStart = rowStart+coords.x;
       const pasteEnd = Math.min(pasteStart+clipData.width,rowEnd);
       //get a row from the clipboard
-      const pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width,dataWidth+y*clipData.width);
+      let pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width,dataWidth+y*clipData.width);
+      
+      //overlaying blank characters, like they're transparent
+      if(blendTransparentAreas){
+        let tempRow = '';
+        for(let i = 0; i<pasteRow.length; i++){
+          //if it's a blank character, grab the character from the underlying canvas
+          if(pasteRow.charAt(i) === ' '){
+            tempRow += data.charAt(pasteStart+i);
+          }
+          else{
+            tempRow+=pasteRow.charAt(i);
+          }
+        }
+        pasteRow = tempRow;
+      }
+
       //grab part that'll fit on the canvas
       const pasteFinal = pasteRow.substring(0,Math.min(dataWidth-coords.x,clipData.width+coords.x));
       newData += data.substring(rowStart,pasteStart)+pasteFinal+data.substring(pasteEnd,rowEnd);
@@ -910,15 +968,26 @@ function App() {
     let topL = {x:Math.min(selection.startCoord.x,selection.endCoord.x),y:Math.min(selection.startCoord.y,selection.endCoord.y)};
     let bottomR = {x:Math.max(selection.startCoord.x,selection.endCoord.x),y:Math.max(selection.startCoord.y,selection.endCoord.y)};
 
-    if(topL.x + direction.x < 0 ||
-       bottomR.x + direction.x > dimensions.width ||
-       topL.y + direction.y < 0 ||
-       bottomR.y + direction.y > dimensions.height
+    if(((topL.x + direction.x) < 0) ||
+       ((bottomR.x + direction.x) > dimensions.width) ||
+       ((topL.y + direction.y) < 0) ||
+       ((bottomR.y + direction.y) > dimensions.height)
     ) return false;
-    else return true;
+
+    return true;
   }
 
   function handleKeyPress(e){
+    if(e.key == "Meta"){
+      commandKey.current = true;
+      return;
+    }
+    else{
+      commandKey.current = false;
+    }
+    
+    if(textSelectable)
+      return;
     //stop the event from bubbling, so this is only called once
     // e.stopPropagation();
     if(e.target === document.body){
@@ -946,17 +1015,28 @@ function App() {
         setTextClipboard(newData.cutData);
         return;
       }
-      else if(e.key == 'c' && e.ctrlKey && (selection.started || selection.finished)){
-        let newData = copyArea(selection.startCoord,selection.endCoord,textData,canvDims.width,activeChar);
-        setTextClipboard(newData);
-        return;
+      else if(e.key == 'c'){
+        //copy text to clipboard
+        if(commandKey){
+          copyText(divContents,canvasDimensions);
+        }
+        else if(e.ctrlKey && (selection.started || selection.finished)){
+          let newData = copyArea(selection.startCoord,selection.endCoord,textData,canvDims.width,activeChar);
+          setTextClipboard(newData);
+          return;
+        }
       }
       //if ctrl v, and if there's something on the clipboard
-      else if(e.key == 'v' && e.ctrlKey && clip.data.length){
-        const coords = {x:index%canvDims.width,y:Math.trunc(index/canvDims.width)};
-        const newData = paste(clip,textData,coords,canvDims.width);
-        setDivContents(newData);
-        return;
+      else if(e.key == 'v'){
+        if(commandKey){
+          grabClipboardContents();
+        }
+        else if(e.ctrlKey && clip.data.length){
+          const coords = {x:index%canvDims.width,y:Math.trunc(index/canvDims.width)};
+          const newData = paste(clip,textData,coords,canvDims.width);
+          setDivContents(newData);
+          return;
+        }
       }
       else if(e.key == 'f' && e.ctrlKey && (selection.started || selection.finished)){
         let newData = cutArea(selection.startCoord,selection.endCoord,textData,canvDims.width,activeChar);
@@ -999,15 +1079,16 @@ function App() {
       setDivContents(writeCharacter(index,' ',textData));
     }
     else if(e.key === 'ArrowRight'){
-      if((selection.movingText) && checkMove(selection,{x:1,y:0},canvDims)){
-        setDivContents(shiftArea(selection,{x:1,y:0},textData,canvDims.width));
+      if((selection.started || selection.finished) && checkMove(selection,{x:1,y:0},canvDims)){
+        const newCanv = shiftArea(selection,{x:selection.moveBy.x+1,y:selection.moveBy.y},bufCanvas,canvasDimensions.width,true);
+        setDivContents(newCanv);
         setSelectionBox(
           {
-            startCoord:{x:selection.startCoord.x+1,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x+1,y:selection.endCoord.y},
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
             started : selection.started,
             finished : selection.finished,
-            movingText : true,
+            movingText : selection.movingText,
             moveBy : {x:selection.moveBy.x+1,y:selection.moveBy.y}
           }
         );
@@ -1021,14 +1102,15 @@ function App() {
     }
     else if(e.key === 'ArrowLeft'){
       if((selection.started || selection.finished) && checkMove(selection,{x:-1,y:0},canvDims)){
-        setDivContents(shiftArea(selection,{x:-1,y:0},textData,canvDims.width));
+        const newCanv = shiftArea(selection,{x:selection.moveBy.x-1,y:selection.moveBy.y},bufCanvas,canvasDimensions.width,true);
+        setDivContents(newCanv);
         setSelectionBox(
           {
-            startCoord:{x:selection.startCoord.x-1,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x-1,y:selection.endCoord.y},
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
             started : selection.started,
             finished : selection.finished,
-            movingText : true,
+            movingText : selection.movingText,
             moveBy : {x:selection.moveBy.x-1,y:selection.moveBy.y}
           }
         );
@@ -1042,14 +1124,15 @@ function App() {
     }
     else if(e.key === 'ArrowUp'){
       if((selection.started || selection.finished) && checkMove(selection,{x:0,y:-1},canvDims)){
-        setDivContents(shiftArea(selection,{x:0,y:-1},textData,canvDims.width));
+        const newCanv = shiftArea(selection,{x:selection.moveBy.x,y:selection.moveBy.y-1},bufCanvas,canvasDimensions.width,true);
+        setDivContents(newCanv);
         setSelectionBox(
           {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y-1},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y-1},
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
             started : selection.started,
             finished : selection.finished,
-            movingText : true,
+            movingText : selection.movingText,
             moveBy : {x:selection.moveBy.x,y:selection.moveBy.y-1}
           }
         );
@@ -1063,14 +1146,15 @@ function App() {
     }
     else if(e.key === 'ArrowDown'){
       if((selection.started || selection.finished) && checkMove(selection,{x:0,y:1},canvDims)){
-        setDivContents(shiftArea(selection,{x:0,y:1},textData,canvDims.width));
+        const newCanv = shiftArea(selection,{x:selection.moveBy.x,y:selection.moveBy.y+1},bufCanvas,canvasDimensions.width,true);
+        setDivContents(newCanv);
         setSelectionBox(
           {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y+1},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y+1},
+            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
             started : selection.started,
             finished : selection.finished,
-            movingText : true,
+            movingText : selection.movingText,
             moveBy : {x:selection.moveBy.x,y:selection.moveBy.y+1}
           }
         );
@@ -1091,7 +1175,7 @@ function App() {
   }
 
   //adds in \n characters at the end of each line
-  function processText(data,dimensions){
+  function addLineBreaksToText(data,dimensions){
     let finalString = '';
     for(let row = 0; row<dimensions.height; row++){
       finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
@@ -1210,6 +1294,23 @@ function App() {
     borderColor:textColor,
   }
 
+  const resizePreviewStyle = {
+    width:String(canvasDimensionSliders.width)+'ch',
+    height:String((canvasDimensionSliders.height)*lineHeight)+'em',
+    left:'0',
+    top:'0',
+    borderColor:textColor,
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    fontSize:fontSize+'px',
+    zIndex:0,
+    position:'absolute',
+    borderStyle:'dashed',
+    borderWidth:'1px',
+    pointerEvents:'none',
+    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+  }
+
   const highlightBoxStyle = {
     width:'1ch',
     height: lineHeight+'em',
@@ -1233,15 +1334,16 @@ function App() {
   }
 
   const canvasStyle = {
-    userSelect : textSelectable?'default':'none',
-    cursor:selectionBox.finished?'grab':'pointer',
+    userSelect : textSelectable?'text':'none',
+
+    cursor:textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
     fontSize:fontSize+'px',
     color:textColor,
     backgroundColor:'transparent',
     width:'fit-content',
     // width: canvasDimensions.width+'ch',
     lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px'
+    letterSpacing:textSpacing+'px',
   }
 
   const brushPreviewStyle = {
@@ -1253,6 +1355,10 @@ function App() {
     backgroundColor:'transparent',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
+    position:'fixed',
+    top:'10px',
+    right:'10px',
+    direction: 'rtl'
   }
 
   const backgroundStyle = {
@@ -1290,6 +1396,31 @@ function App() {
     }
   }
 
+  //grabs any text, or images, in the users clipboard and puts them onto the canvas
+  //https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/read
+  async function grabClipboardContents(){
+    const contents = await navigator.clipboard.read(['text','images'])
+    for(const item of contents){
+      for(const mimeType of item.types){
+        //if it's an image
+        if(mimeType === 'image/png'){
+          const blob = await item.getType("image/png");
+          convertImageToAscii(URL.createObjectURL(blob));
+        }
+        //if it's text
+        else if(mimeType === 'text/plain'){
+          const blob = await item.getType('text/plain');
+          const text = await blob.text();
+          setDivContents(text.padEnd(canvasDimensions.width*canvasDimensions.height));
+        }
+      }
+    }
+  }
+
+  function nullHandler(e){
+
+  }
+
   if(imageRenderer.imageLoaded && imageRenderer.needToReload){
     convertImageToAscii(imageRenderer.imageSrc);
   }
@@ -1306,12 +1437,14 @@ function App() {
       <div className = "ui_container" style = {{display:'block'}}>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         <div className = 'help_text'>highlighting: [x:{activeCharIndex%canvasDimensions.width} y:{Math.trunc(activeCharIndex/canvasDimensions.width)}]</div>
+        <div className = 'ascii_button' onClick = {(e) => {setTextSelectable(!textSelectable)}}>selectable text [{textSelectable?'X':' '}]</div>
         <Dropdown label = 'drawing mode' callback = {(val) => {setDrawingMode(val);}} value = {drawingMode} options = {['line','brush']}></Dropdown>
         {drawingMode == 'brush' &&
         <>
           <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
+          {/* brush preview */}
           <div style = {brushPreviewStyle}>
-            {processText(getBrushCanvas(brushData.brushSize),{width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+            {addLineBreaksToText(getBrushCanvas(brushData.brushSize),{width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
           </div>
           <div className = 'ascii_button' onClick = {() => {setUseDynamicBrush(!useDynamicBrush)}}>{'dynamic brush ['+(useDynamicBrush?'x':' ')+']'}</div>
         </>
@@ -1351,12 +1484,23 @@ function App() {
                                                                 setDivContents(newData.data);
                                                               }}}>fill (ctrl+f)</div>
         }
-        <NumberInput name = "width" value = {canvasDimensions.width} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents))}}></NumberInput>
-        <NumberInput name = "height" value = {canvasDimensions.height} min = {1} max = {1024} callback = {(val) =>{setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents))}}></NumberInput>
-        <Dropdown label = 'page# (previous drawings):' callback = {(val) => {const newPreset = settings.presets.find((element) => element.title === val);setDivContents(newPreset.data);setCanvasDimensions({height:newPreset.rows,width:newPreset.columns})}} options = {settings.presets.map((n) => n.title)}></Dropdown>
-        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(processText(divContents,canvasDimensions));}}>copy contents (with line breaks)</div>
-        <div className = "ascii_button" onClick = {(e) => {navigator.clipboard.writeText(divContents);}}>copy contents (as a single line)</div>
-        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear</div>
+        {/* overlay white space */}
+        <div className = 'ascii_button' onClick = {() => {setBlendTransparentAreas(!blendTransparentAreas)}}>{'blend transparency ['+(blendTransparentAreas?'X':' ')+']'}</div>
+        <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents));setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}}></NumberInput>
+        <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents));setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSliders.width})}}></NumberInput>
+        { (canvasDimensionSliders.width != canvasDimensions.width || canvasDimensionSliders.height != canvasDimensions.height) &&
+          <div className = "ascii_button" onClick = {(e) =>{setDivContents(resizeCanvas({width:canvasDimensionSliders.width,height:canvasDimensionSliders.height},divContents))}} style = {{color:'#0000ff'}}>apply</div>
+        }
+        <Dropdown label = 'page# (previous drawings):' callback = {(val) => {const newPreset = settings.presets.find((element) => element.title === val);setDivContents(newPreset.data);setCanvasDimensions({height:newPreset.rows,width:newPreset.columns});setCanvasDimensionSliders({height:newPreset.rows,width:newPreset.columns})}} options = {settings.presets.map((n) => n.title)}></Dropdown>
+        {/* paste text to canvas from clipboard */}
+        <div className = "ascii_button" onClick = {(e) => {grabClipboardContents()}}>paste drawing from clipboard</div>
+        {/* copy settings */}
+        <div className = "ascii_button" onClick = {(e) => {setCopyTextWithLineBreaks(!copyTextWithLineBreaks);}}>{'  line breaks ['+(copyTextWithLineBreaks?'X]':' ]')}</div>
+        <div className = "ascii_button" onClick = {(e) => {setEscapeTextBeforeCopying(!escapeTextBeforeCopying);}}>{'  escape text ['+(escapeTextBeforeCopying?'X]':' ]')}</div>
+        {/* copy text to clipboard*/}
+        <div className = "ascii_button" onClick = {(e) => {copyText(divContents,canvasDimensions)}}>copy drawing to clipboard</div>
+        {/* clear canvas */}
+        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear canvas</div>
         <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
         <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
         
@@ -1376,15 +1520,20 @@ function App() {
       </div>
       {/* canvas */}
       <div className = "canvas_container" style = {canvasContainerStyle}>
+        {/* selection box */}
         {(selectionBox.started||selectionBox.finished) &&
           <div className = "selection_box" style = {selectionBoxStyle}/>
         }
+        {/* canvas resizing preview box */}
+        {(canvasDimensionSliders.width != canvasDimensions.width || canvasDimensionSliders.height != canvasDimensions.height) &&
+          <div className = "resize_preview_box" style = {resizePreviewStyle}/>
+        }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" onMouseMove = {handleMouseMove} onMouseDown = {handleMouseDown} onMouseUp = {handleMouseUp} onClick = {handleClick}  style = {canvasStyle}>
-          {processText(divContents,canvasDimensions)}
+        <div className = "ascii_canvas" onMouseMove = {textSelectable?nullHandler:handleMouseMove} onMouseDown = {textSelectable?nullHandler:handleMouseDown} onMouseUp = {textSelectable?nullHandler:handleMouseUp} onClick = {textSelectable?nullHandler:handleClick}  style = {canvasStyle}>
+          {addLineBreaksToText(divContents,canvasDimensions)}
         </div>
         <div className = "canvas_background" style = {backgroundStyle}>
-          {processText(createBackground(canvasDimensions),{width:canvasDimensions.width+2,height:canvasDimensions.height+2})}
+          {addLineBreaksToText(createBackground(canvasDimensions),{width:canvasDimensions.width+2,height:canvasDimensions.height+2})}
         </div>
       </div>
     </div>
