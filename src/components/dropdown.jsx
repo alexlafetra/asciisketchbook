@@ -1,12 +1,8 @@
 import { useState } from 'react'
 
-function Dropdown({label,callback,defaultValue,options}){
-
-    const [value,setValue] = useState(defaultValue);
-
+function Dropdown({label,callback,value,options}){
     const callbackFn = (event) => {
         callback(event.target.value);
-        setValue(event.target.value);
     }
 
     return(

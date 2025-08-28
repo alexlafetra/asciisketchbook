@@ -1,11 +1,11 @@
 import { NumberField } from '@base-ui-components/react/number-field';
 import { useState } from 'react'
 
-function NumberInput({name,defaultValue,min,max,callback}){
-    const [value,setValue] = useState(defaultValue);
+function NumberInput({name,value,min,max,callback}){
+    // const [value,setValue] = useState(defaultValue);
     const handleValueChange = (newValue,event) => {
         callback(newValue);
-        setValue(newValue);
+        // setValue(newValue);
     }
     const handleInputChange = (e) => {
         let val = parseInt(e.target.value);
@@ -16,10 +16,11 @@ function NumberInput({name,defaultValue,min,max,callback}){
             val = min;
         }
         callback(val);
-        setValue(val);
+        // setValue(val);
     }
+
     return(
-    <NumberField.Root className = "number_input_container" min = {min} max = {max} name = {name} defaultValue = {defaultValue} value = {value} onValueChange = {handleValueChange}>
+    <NumberField.Root className = "number_input_container" min = {min} max = {max} name = {name} value = {value} onValueChange = {handleValueChange}>
     {/* <NumberField.ScrubArea>
         <NumberField.ScrubAreaCursor />
     </NumberField.ScrubArea> */}

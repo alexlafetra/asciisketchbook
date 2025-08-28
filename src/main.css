@@ -2,14 +2,6 @@ html{
     background-color:transparent;
     height:100%;
 }
-body {
-    /* height:100%;
-    padding: 0;
-    margin: 0; */
-    /* display:flex;
-    justify-content: center;
-    align-items: center; */
-}
 .app_container{
     position:absolute;
     left:0;
@@ -18,28 +10,16 @@ body {
     grid-template-columns: 300px auto;
     grid-template-areas: "ui canvas";
 }
-.canvas_container{
-    /* margin-left:300px; */
-    margin-top: 100px;
-    display:block;
-    position:relative;
-    width:fit-content;
-    height:fit-content;
-    white-space: pre;
-    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
 .ascii_canvas{
     position:relative;
     z-index:1;
-    /* margin:0 auto; */
     display:block;
-    /* text-overflow: clip; */
 }
 .canvas_background{
     position:absolute;
+    z-index:-1;
     left:-1ch;
     pointer-events: none;
-    background-color:transparent;
 }
 .selection_box{
     z-index:0;
@@ -51,13 +31,11 @@ body {
     background-color:#ffff00;
 }
 
-
 .ui_container{
     display: block;
     position: -webkit-sticky; /* Safari */  
     position: sticky;
     grid-area: ui;
-    /* margin:40px; */
     left:40px;
     top:40px;
     margin-top:100px;
@@ -181,4 +159,11 @@ body {
 .number_input_label{
     width:80%;
     margin:auto;
+}
+.ascii_graphics{
+    white-space: pre;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 10px;
+    width:fit-content;
+    height:fit-content;
 }
