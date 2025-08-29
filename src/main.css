@@ -151,6 +151,7 @@ html{
     background-color:#ffff00ff;
 }
 .number_input_box{
+    user-select: none;
     border-style:none;
     background-color: transparent;
     width:fit-content;
@@ -167,4 +168,13 @@ html{
     font-size: 10px;
     width:fit-content;
     height:fit-content;
+}
+
+@keyframes blink {
+  from {border-color: #ffff00;}
+  to {border-color: #0000ff;}
+}
+
+.resize_preview_box{
+    animation: blink 0.25s infinite;
 }

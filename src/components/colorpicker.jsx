@@ -13,7 +13,7 @@ function ColorPicker({label,callback,defaultValue}){
 
     return(
         <div className = "color_picker_container" style = {{cursor:'pointer',width:'fit-content',height:'fit-content'}}>
-        <span className = "control_label" onClick = {(e) => {setActive(!active)}} style = {{backgroundColor:(active?'#000000':'transparent'),color:(active?value:'#000000')}}>{label}</span>
+        <span className = "control_label" onClick = {(e) => {setActive(!active)}} style = {{backgroundColor:(active?value:'transparent'),color:('#000000'),mixBlendMode:'difference'}}>{label}</span>
         {active &&
             <HexColorPicker className = "color_picker" onChange={callbackFn} color = {defaultValue}></HexColorPicker>
         }

@@ -8,7 +8,7 @@ function Dropdown({label,callback,value,options}){
     return(
         <div className = "dropdown_container">
         <span className = "dropdown_label">{label}</span>
-        <select className = "dropdown" value = {value}
+        <select className = "dropdown" style = {{userSelect :'none'}} value = {value}
             onInput  = {callbackFn}>
                 <>{options.map(op => (<option key = {op}>{op}</option>))}</>
         </select>
