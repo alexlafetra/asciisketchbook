@@ -6,7 +6,7 @@ import './main.css';
 import Dropdown from './components/dropdown';
 import FilePicker from './components/filepicker';
 import NumberInput from './components/numberinput';
-
+import AsciiPalletteInput from './components/asciipalletteinput';
 function App() {
 
   const presets =  [
@@ -59,6 +59,13 @@ function App() {
       width:50
     }
   ];
+
+  const asciiPallettePresets = {
+    symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
+    full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
+    letters:`BWMoahkbdpqwmZOQLCJUYXzcvunxrjftilI `
+  };
+
   //holds the processed jsx children
   const [divContents,setDivContents] = useState(presets[0].data);
   const [undoCanvas,setUndoCanvas] = useState(undefined);
@@ -72,7 +79,8 @@ function App() {
   const [lineHeight,setLineHeight] = useState(1.15);
   const [canvasDimensions,setCanvasDimensions] = useState({width:presets[0].width,height:presets[0].height});
   const [textSelectable,setTextSelectable] = useState(false);
-  const [asciiPallette,setAsciiPallette] = useState('symbols');
+  const [asciiPallettePreset,setAsciiPallettePreset] = useState('full');
+  const [asciiPallette,setAsciiPallette] = useState(asciiPallettePresets['full']);
   const [drawingMode,setDrawingMode] = useState('brush');
   const [showAbout,setShowAbout] = useState(false);
   const [escapeTextBeforeCopying,setEscapeTextBeforeCopying] = useState(true);
@@ -120,7 +128,6 @@ function App() {
       lastCoordinate:undefined
     }
   );
-  const commandKey = useRef(false);
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
@@ -133,10 +140,14 @@ function App() {
   const blendTransparentAreasRef = useRef(blendTransparentAreas);
   const undoCanvasRef = useRef(undoCanvas);
   const advanceWhenCharacterEnteredRef = useRef(advanceWhenCharacterEntered);
+  const canvasDimensionSlidersRef = useRef(canvasDimensionSliders);
   //making sure the callback can access "fresh" versions of state data
   useEffect(() => {
     advanceWhenCharacterEnteredRef.current = advanceWhenCharacterEntered;
   },[advanceWhenCharacterEntered]);
+  useEffect(() => {
+    canvasDimensionSlidersRef.current = canvasDimensionSliders;
+  },[canvasDimensionSliders]);
   useEffect(() => {
     activeCharIndexRef.current = activeCharIndex;
   }, [activeCharIndex]);
@@ -179,10 +190,8 @@ function App() {
   //add keypress event handlers, but only once
   useEffect(() => {
     window.document.addEventListener('keydown', handleKeyPress);
-    window.document.addEventListener('keyup', handleKeyUp);
     return () => {
       window.document.removeEventListener('keydown', handleKeyPress);
-      window.document.removeEventListener('keyup', handleKeyUp);
     }
   }, []);
 
@@ -202,6 +211,8 @@ function App() {
 
   function undo(){
     const undoCanv = undoCanvasRef.current;
+    if(undoCanv === undefined)
+      return;
     setDivContents(undoCanv.canvas);
     setCanvasDimensions(undoCanv.dimensions);
     setCanvasDimensionSliders(undoCanv.dimensions);
@@ -265,12 +276,14 @@ function App() {
   function convertImage(img){
     //70 char long
     const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
-    const pallettes = {
-      symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
-      full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
-      letters:`BWMoahkbdpqwmZOQLCJUYXzcvunxrjftilI `
-    };
-    const pallette = pallettes[asciiPallette];
+
+    const pallette = asciiPallette;
+    if(pallette.length === 0){
+      let warningString = '[no character pallette to raster with]';
+      warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
+      setDivContents(warningString);
+      return;
+    }
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     let newStr = '';
@@ -404,6 +417,7 @@ function App() {
       width : e.target.clientWidth / canvasDimensions.width,
       height : e.target.clientHeight / canvasDimensions.height,
     };
+
     return {x: Math.trunc(clickCoords.x/characterDims.width),y:Math.trunc(clickCoords.y/characterDims.height)};
   }
 
@@ -549,6 +563,7 @@ function App() {
   function handleMouseMove(e){
     const newIndex = getClickIndex(e);
     const canvDims = canvasDimensionsRef.current;
+    const coords = getClickCoords(e);
     switch(drawingMode){
       case 'line':
         //changing line position
@@ -558,9 +573,7 @@ function App() {
             return;
           }
           const tempCanvas = bufferCanvas;
-          const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
-          const coords = {x:newIndex%canvasDimensions.width,y:Math.trunc(newIndex/canvasDimensions.width)};
-          
+          const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};          
           const line = {
             begun : true,
             moved : true,
@@ -574,7 +587,6 @@ function App() {
         break;
       case 'brush':
         if(brushData.drawing){
-          const coords = getClickCoords(e);
           let brushSize = brushData.brushSize;
           if(brushData.lastCoordinate !== undefined && useDynamicBrush){
             const distX = brushData.lastCoordinate.x - coords.x;
@@ -1037,32 +1049,47 @@ function App() {
     let bottomR = {x:Math.max(selection.startCoord.x,selection.endCoord.x),y:Math.max(selection.startCoord.y,selection.endCoord.y)};
 
     if(((topL.x + direction.x) < 0) ||
-       ((bottomR.x + direction.x) > dimensions.width) ||
+       ((bottomR.x + direction.x) >= dimensions.width) ||
        ((topL.y + direction.y) < 0) ||
-       ((bottomR.y + direction.y) > dimensions.height)
+       ((bottomR.y + direction.y) >= dimensions.height)
     ) return false;
 
     return true;
   }
 
-  //callback to remove the cmd key flag
-  function handleKeyUp(e){
-    if(e.key == "Meta"){
-      commandKey.current = false;
+  function move(selection,direction,bufCanvas,canvDims){
+    if((selection.started || selection.finished) && checkMove(selection,direction,canvDims)){
+      const newCanv = shiftArea(selection,{x:selection.moveBy.x+direction.x,y:selection.moveBy.y+direction.y},bufCanvas,canvDims.width,true);
+      setDivContents(newCanv);
+      setSelectionBox(
+        {
+          startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+          endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
+          started : selection.started,
+          finished : selection.finished,
+          movingText : selection.movingText,
+          moveBy : {x:selection.moveBy.x+direction.x,y:selection.moveBy.y+direction.y}
+        }
+      );
+      return true;
     }
+    return false;
   }
 
   function handleKeyPress(e){
-    if(e.key == "Meta"){
-      commandKey.current = true;
-      return;
-    }
     
     if(textSelectable)
       return;
     //stop the event from bubbling, so this is only called once
     e.stopPropagation();
-    if(e.target === document.body){
+
+    /*
+    This vv is for only triggering when the document is focused, so typing
+    in the input boxes/outside the page doesn't trigger text entry.
+    Enter key still works tho, so you can enter new canv dims
+    */
+    console.log(e);
+    if((e.target === document.body) || (e.key === 'Enter')){
     }
     //u were focused elsewhere
     else{
@@ -1077,38 +1104,40 @@ function App() {
     const bufCanvas = bufferCanvasRef.current;
     const selection = selectionBoxRef.current;
     const canvDims = canvasDimensionsRef.current;
+    const canvDimSliders = canvasDimensionSlidersRef.current;
+    const advanceOnPress = advanceWhenCharacterEnteredRef.current;
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
       if(e.key == 'x'){
-        if(commandKey.current){
+        if(e.metaKey){
           cutText(textData,canvDims);
           return;
         }
       }
       if(e.key == 'z'){
-        if(commandKey.current){
+        if(e.metaKey){
           undo();
           return;
         }
       }
       else if(e.key == 'c'){
         //copy text to clipboard
-        if(commandKey.current){
+        if(e.metaKey){
           copyText(textData,canvDims);
           return;
         }
       }
       //if ctrl v, and if there's something on the clipboard
       else if(e.key == 'v'){
-        if(commandKey.current){
+        if(e.metaKey){
           pasteClipboardContents();
           return;
         }
       }
       //select all
       else if(e.key == 'a'){
-        if(commandKey.current){
+        if(e.metaKey){
           setSelectionBox({
             started : false,
             finished : true,
@@ -1162,19 +1191,8 @@ function App() {
       }
     }
     else if(e.key === 'ArrowRight'){
-      if((selection.started || selection.finished) && checkMove(selection,{x:1,y:0},canvDims)){
-        const newCanv = shiftArea(selection,{x:selection.moveBy.x+1,y:selection.moveBy.y},bufCanvas,canvDims.width,true);
-        setDivContents(newCanv);
-        setSelectionBox(
-          {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
-            started : selection.started,
-            finished : selection.finished,
-            movingText : selection.movingText,
-            moveBy : {x:selection.moveBy.x+1,y:selection.moveBy.y}
-          }
-        );
+      //move returns false if it doesn't work
+      if(move(selection,{x:1,y:0},bufCanvas,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1184,19 +1202,8 @@ function App() {
       }
     }
     else if(e.key === 'ArrowLeft'){
-      if((selection.started || selection.finished) && checkMove(selection,{x:-1,y:0},canvDims)){
-        const newCanv = shiftArea(selection,{x:selection.moveBy.x-1,y:selection.moveBy.y},bufCanvas,canvDims.width,true);
-        setDivContents(newCanv);
-        setSelectionBox(
-          {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
-            started : selection.started,
-            finished : selection.finished,
-            movingText : selection.movingText,
-            moveBy : {x:selection.moveBy.x-1,y:selection.moveBy.y}
-          }
-        );
+      //move returns false if it doesn't work
+      if(move(selection,{x:-1,y:0},bufCanvas,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1206,19 +1213,8 @@ function App() {
 
     }
     else if(e.key === 'ArrowUp'){
-      if((selection.started || selection.finished) && checkMove(selection,{x:0,y:-1},canvDims)){
-        const newCanv = shiftArea(selection,{x:selection.moveBy.x,y:selection.moveBy.y-1},bufCanvas,canvDims.width,true);
-        setDivContents(newCanv);
-        setSelectionBox(
-          {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
-            started : selection.started,
-            finished : selection.finished,
-            movingText : selection.movingText,
-            moveBy : {x:selection.moveBy.x,y:selection.moveBy.y-1}
-          }
-        );
+      //move returns false if it doesn't work
+      if(move(selection,{x:0,y:-1},bufCanvas,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1228,19 +1224,8 @@ function App() {
       }
     }
     else if(e.key === 'ArrowDown'){
-      if((selection.started || selection.finished) && checkMove(selection,{x:0,y:1},canvDims)){
-        const newCanv = shiftArea(selection,{x:selection.moveBy.x,y:selection.moveBy.y+1},bufCanvas,canvDims.width,true);
-        setDivContents(newCanv);
-        setSelectionBox(
-          {
-            startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
-            endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
-            started : selection.started,
-            finished : selection.finished,
-            movingText : selection.movingText,
-            moveBy : {x:selection.moveBy.x,y:selection.moveBy.y+1}
-          }
-        );
+      //move returns false if it doesn't work
+      if(move(selection,{x:0,y:1},bufCanvas,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1250,7 +1235,14 @@ function App() {
       }
     }
     else if(e.key == 'Enter'){
-      if(e.shiftKey)
+      if((canvDimSliders.width != canvDims.width) || (canvDimSliders.height != canvDims.height)){
+        setDivContents(resizeCanvas({width:canvDimSliders.width,height:canvDimSliders.height},textData));
+      }
+      //if ur typing like normal, this key starts a newline
+      else if(advanceOnPress){
+        setActiveCharIndex(index+canvDims.width - index%canvDims.width);
+      }
+      else if(e.shiftKey)
         newLine(index,-1,textData);
       else
         newLine(index,1,textData);
@@ -1375,6 +1367,12 @@ function App() {
     letterSpacing:textSpacing+'px',
     fontSize:fontSize+'px',
     borderColor:textColor,
+    zIndex:'0',
+    position:'absolute',
+    borderStyle:'dashed',
+    borderWidth:'1px',
+    fontFamily:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    backgroundColor:'#ffff00'
   }
 
   const resizePreviewStyle = {
@@ -1397,17 +1395,20 @@ function App() {
   const highlightBoxStyle = {
     width:'1ch',
     height: lineHeight+'em',
-    left: String(activeCharIndex%canvasDimensions.width) + 'ch',
-    top: String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em',
+
+    //-1px for the border
+    left: 'calc('+String(activeCharIndex%canvasDimensions.width) + 'ch - 1px)',
+    top: 'calc('+String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em - 1px)',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
     fontSize:fontSize+'px',
-    backgroundColor:'#ffff00ff',
     position:'absolute',
+    animation: 'blinkBackground 0.5s infinite'
   };
 
   const canvasContainerStyle = {
     width:'fit-content',
+    height:'fit-content',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
     marginTop: '100px',
@@ -1420,6 +1421,7 @@ function App() {
     userSelect : textSelectable?'text':'none',
 
     cursor:textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
+
     fontSize:fontSize+'px',
     color:textColor,
     backgroundColor:'transparent',
@@ -1432,7 +1434,6 @@ function App() {
   const brushPreviewStyle = {
     width:(brushData.brushSize*2)+'ch',
     whiteSpace:'pre',
-    backgroundColor:'white',
     fontSize:fontSize+'px',
     color:textColor,
     backgroundColor:'transparent',
@@ -1451,6 +1452,17 @@ function App() {
     fontSize:fontSize+'px',
     width: canvasDimensions.width+2+'ch'
   };
+
+  const asciiPalletteInputStyle = {
+    width:String(asciiPallette.length)+'ch',
+    minWidth:'22ch',
+    // width:'fit-content',
+    fontSize:fontSize+'px',
+    lineHeight:lineHeight,
+    letterSpacing:textSpacing+'px',
+    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+
+  }
 
   const loadImage = (file) => {
     //make sure there's a file here
@@ -1529,7 +1541,7 @@ function App() {
         //if it's text, paste it at the correct loc
         else if(mimeType === 'text/plain'){
           const blob = await item.getType('text/plain');
-          const text = await blob.text();
+          let text = await blob.text();
           const clipDims = clipboardDimensionsRef.current;
           const selBox = selectionBoxRef.current;
           const canvDims = canvasDimensionsRef.current;
@@ -1575,8 +1587,12 @@ function App() {
       <div className = "ui_container" style = {{display:'block'}}>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {/* <div className = 'help_text'>cursor: (x:{activeCharIndex%canvasDimensions.width} y:{Math.trunc(activeCharIndex/canvasDimensions.width)})</div> */}
-        <div className = 'ascii_button' onClick = {(e) => {setAdvanceWhenCharacterEntered(!advanceWhenCharacterEntered)}}>advance cursor when typing [{advanceWhenCharacterEntered?'X':' '}]</div>
         <div className = 'ascii_button' onClick = {(e) => {setTextSelectable(!textSelectable)}}>selectable text [{textSelectable?'X':' '}]</div>
+        {textSelectable && 
+          <div className = 'help_text' style ={{color:'#ff0000'}}>(cmd+a) select all</div>
+        }
+        {!textSelectable && <>
+        <div className = 'ascii_button' onClick = {(e) => {setAdvanceWhenCharacterEntered(!advanceWhenCharacterEntered)}}>advance cursor when typing [{advanceWhenCharacterEntered?'X':' '}]</div>
         <Dropdown label = 'drawing mode' callback = {(val) => {setDrawingMode(val);}} value = {drawingMode} options = {['line','brush']}></Dropdown>
         {drawingMode == 'brush' &&
         <>
@@ -1617,7 +1633,7 @@ function App() {
         <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents));setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}}></NumberInput>
         <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents));setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSliders.width})}}></NumberInput>
         { (canvasDimensionSliders.width != canvasDimensions.width || canvasDimensionSliders.height != canvasDimensions.height) &&
-          <div className = "ascii_button" onClick = {(e) =>{setDivContents(resizeCanvas({width:canvasDimensionSliders.width,height:canvasDimensionSliders.height},divContents))}} style = {{color:'#0000ff'}}>apply</div>
+          <div className = "ascii_button" onClick = {(e) =>{setDivContents(resizeCanvas({width:canvasDimensionSliders.width,height:canvasDimensionSliders.height},divContents))}} style = {{color:'#0000ff'}}>[enter] apply</div>
         }
         <Dropdown label = 'page# (previous drawings):' callback = {(val) => {const newPreset = presets.find((element) => element.title === val);setDivContents(newPreset.data);setCanvasDimensions({height:newPreset.height,width:newPreset.width});setCanvasDimensionSliders({height:newPreset.height,width:newPreset.width})}} options = {presets.map((n) => n.title)}></Dropdown>
         {/* copy text to clipboard*/}
@@ -1640,11 +1656,13 @@ function App() {
         {imageRenderer.imageLoaded &&
         <>
         <img className = "image_preview" src = {imageRenderer.imageSrc}/>
-        <Dropdown label = 'ascii pallette' callback = {(val) => {setAsciiPallette(val);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} value={asciiPallette} options = {['full','symbols','letters']}></Dropdown>
+        <AsciiPalletteInput value = {asciiPallette} style = {asciiPalletteInputStyle} callback = {(val) => {setAsciiPallette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPalletteInput>
+        <Dropdown label = 'pallette presets:' callback = {(val) => {setAsciiPallettePreset(val);setAsciiPallette(asciiPallettePresets[val]);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} value={asciiPallettePreset} options = {['full','symbols','letters']}></Dropdown>
         <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }
+        </>}
       </div>
       {/* canvas */}
       <div className = "canvas_container" style = {canvasContainerStyle}>

@@ -22,15 +22,6 @@ html{
     left:-1ch;
     pointer-events: none;
 }
-.selection_box{
-    z-index:0;
-    position:absolute;
-    border-style:dashed;
-    border-width:1px;
-    pointer-events:none;
-    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    background-color:#ffff00;
-}
 
 .ui_container{
     display: block;
@@ -47,7 +38,7 @@ html{
 .ascii_button{
     white-space: pre;
     color:black;
-    background-color:white;
+    background-color:transparent;
     width:fit-content;
     display:block;
     cursor:pointer;
@@ -121,13 +112,14 @@ html{
     border: none;
     border-radius: 0px;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background-color: transparent;
 }
 
 .file_input{
     font-family: monospace;
     color:#0000ff;
     text-decoration: underline;
-    background-color: #ffffff;
+    background-color: transparent;
     cursor:pointer;
     mix-blend-mode: difference;
 }
@@ -170,11 +162,17 @@ html{
     height:fit-content;
 }
 
-@keyframes blink {
-  from {border-color: #ffff00;}
-  to {border-color: #0000ff;}
+@keyframes blinkBorder {
+    from {border-color: #ffff00;}
+    to {border-color: #0000ff;}
+}
+@keyframes blinkBackground {
+    from {background-color: #ffff00;border:dashed 1px #0000ff;}
+    to {background-color: transparent;border:dashed 1px #ffff00;}
 }
 
+
+
 .resize_preview_box{
-    animation: blink 0.25s infinite;
+    animation: blinkBorder 0.25s infinite;
 }

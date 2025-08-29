@@ -33,7 +33,7 @@ function NumberInput({name,value,min,max,inputCallback,buttonCallback}){
     }
 
     return(
-    <NumberField.Root className = "number_input_container" min = {min} max = {max} name = {name} value = {value} onValueChange = {handleButtonChange}>
+    <NumberField.Root format = {{useGrouping:false}} className = "number_input_container" min = {min} max = {max} name = {name} value = {value} onValueChange = {handleButtonChange}>
     {/* <NumberField.ScrubArea>
         <NumberField.ScrubAreaCursor />
     </NumberField.ScrubArea> */}
