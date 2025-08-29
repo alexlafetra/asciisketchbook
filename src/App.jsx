@@ -6,7 +6,7 @@ import './main.css';
 import Dropdown from './components/dropdown';
 import FilePicker from './components/filepicker';
 import NumberInput from './components/numberinput';
-import AsciiPalletteInput from './components/asciipalletteinput';
+import AsciiPaletteInput from './components/asciipaletteinput';
 function App() {
 
   const presets =  [
@@ -60,7 +60,7 @@ function App() {
     }
   ];
 
-  const asciiPallettePresets = {
+  const asciiPalettePresets = {
     symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
     full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
     letters:`BWMoahkbdpqwmZOQLCJUYXzcvunxrjftilI `
@@ -79,8 +79,8 @@ function App() {
   const [lineHeight,setLineHeight] = useState(1.15);
   const [canvasDimensions,setCanvasDimensions] = useState({width:presets[0].width,height:presets[0].height});
   const [textSelectable,setTextSelectable] = useState(false);
-  const [asciiPallettePreset,setAsciiPallettePreset] = useState('full');
-  const [asciiPallette,setAsciiPallette] = useState(asciiPallettePresets['full']);
+  const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
+  const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
   const [drawingMode,setDrawingMode] = useState('brush');
   const [showAbout,setShowAbout] = useState(false);
   const [escapeTextBeforeCopying,setEscapeTextBeforeCopying] = useState(true);
@@ -277,9 +277,9 @@ function App() {
     //70 char long
     const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
 
-    const pallette = asciiPallette;
-    if(pallette.length === 0){
-      let warningString = '[no character pallette to raster with]';
+    const palette = asciiPalette;
+    if(palette.length === 0){
+      let warningString = '[no character palette to raster with]';
       warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
       setDivContents(warningString);
       return;
@@ -313,9 +313,9 @@ function App() {
       //contrast
       const intercept = 128 * (1 - imageRenderer.contrast);
       grayscaleValue = Math.max(Math.min((grayscaleValue*imageRenderer.contrast) + intercept,255),0);
-      const palletteIndex = map_range(grayscaleValue,0,255,0,pallette.length-1);
+      const paletteIndex = map_range(grayscaleValue,0,255,0,palette.length-1);
 
-      newStr+= pallette.charAt(palletteIndex);
+      newStr+= palette.charAt(paletteIndex);
     }
     setDivContents(newStr);
   };
@@ -1453,17 +1453,6 @@ function App() {
     width: canvasDimensions.width+2+'ch'
   };
 
-  const asciiPalletteInputStyle = {
-    width:String(asciiPallette.length)+'ch',
-    minWidth:'22ch',
-    // width:'fit-content',
-    fontSize:fontSize+'px',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
-    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-
-  }
-
   const loadImage = (file) => {
     //make sure there's a file here
     if(!(file === undefined)){
@@ -1656,8 +1645,8 @@ function App() {
         {imageRenderer.imageLoaded &&
         <>
         <img className = "image_preview" src = {imageRenderer.imageSrc}/>
-        <AsciiPalletteInput value = {asciiPallette} style = {asciiPalletteInputStyle} callback = {(val) => {setAsciiPallette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPalletteInput>
-        <Dropdown label = 'pallette presets:' callback = {(val) => {setAsciiPallettePreset(val);setAsciiPallette(asciiPallettePresets[val]);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} value={asciiPallettePreset} options = {['full','symbols','letters']}></Dropdown>
+        <AsciiPaletteInput value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
+        <Dropdown label = 'palette presets:' callback = {(val) => {setAsciiPalettePreset(val);setAsciiPalette(asciiPalettePresets[val]);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} value={asciiPalettePreset} options = {['full','symbols','letters']}></Dropdown>
         <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
