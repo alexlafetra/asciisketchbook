@@ -83,6 +83,7 @@ function App() {
   const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
   const [drawingMode,setDrawingMode] = useState('brush');
   const [showAbout,setShowAbout] = useState(false);
+  const [showBrushPreview,setShowBrushPreview] = useState(false);
   const [escapeTextBeforeCopying,setEscapeTextBeforeCopying] = useState(true);
   const [copyTextWithLineBreaks,setCopyTextWithLineBreaks] = useState(false);
   const [blendTransparentAreas,setBlendTransparentAreas] = useState(true);
@@ -128,6 +129,7 @@ function App() {
       lastCoordinate:undefined
     }
   );
+
   const activeCharIndexRef = useRef(activeCharIndex);
   const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
@@ -422,6 +424,10 @@ function App() {
   }
 
   function handleMouseUp(e){
+
+    //set the cursor on the index where the mouse was released
+    setActiveCharIndex(getClickIndex(e));
+
     switch(drawingMode){
       case 'line':
         const newIndex = getClickIndex(e);
@@ -478,6 +484,7 @@ function App() {
   }
 
   function handleMouseDown(e){
+    setActiveCharIndex(getClickIndex(e));
     //moving selectionbox
     if(selectionBox.finished){
       const coords = getClickCoords(e);
@@ -530,12 +537,7 @@ function App() {
           break;
         case 'brush':
           const coords = getClickCoords(e);
-          //for a 0-point brush, just draw one character
-          if(brushData.brushSize == 0)
-            setDivContents(writeCharacter(newIndex,currentChar,divContents));
-          else{
-            setDivContents(fillCircle(coords.x,coords.y,brushData.brushSize,currentChar,divContents,canvasDimensions));
-          }
+          // don't draw a character yet, until the mouse is moved
           setBrushData({
             drawing:true,
             brushSize: brushData.brushSize,
@@ -662,11 +664,6 @@ function App() {
       setSelectionBox(newBox);
       setDivContents(shiftArea(newBox,newBox.moveBy,bufferCanvas,canvDims.width,true));
     }
-  }
-
-  function handleClick(e){
-    const newIndex = getClickIndex(e);
-    setActiveCharIndex(newIndex);
   }
 
   function writeCharacter(index,char,data){
@@ -1044,17 +1041,20 @@ function App() {
     return newData.data;
   }
 
+  //this is glitching because it's always using the original selection box coords
   function checkMove(selection,direction,dimensions){
     let topL = {x:Math.min(selection.startCoord.x,selection.endCoord.x),y:Math.min(selection.startCoord.y,selection.endCoord.y)};
     let bottomR = {x:Math.max(selection.startCoord.x,selection.endCoord.x),y:Math.max(selection.startCoord.y,selection.endCoord.y)};
-
-    if(((topL.x + direction.x) < 0) ||
-       ((bottomR.x + direction.x) >= dimensions.width) ||
-       ((topL.y + direction.y) < 0) ||
-       ((bottomR.y + direction.y) >= dimensions.height)
-    ) return false;
-
-    return true;
+    if(((topL.x + direction.x + selection.moveBy.x) < 0) ||
+       ((bottomR.x + direction.x + selection.moveBy.x) > dimensions.width) ||
+       ((topL.y + direction.y + selection.moveBy.y) < 0) ||
+       ((bottomR.y + direction.y + selection.moveBy.y) > dimensions.height)
+    ){
+      return false;
+    }
+    else{
+      return true;
+    }
   }
 
   function move(selection,direction,bufCanvas,canvDims){
@@ -1076,10 +1076,17 @@ function App() {
     return false;
   }
 
+  function clearCanvas(){
+    let canvasData=``;
+    canvasData = canvasData.padStart(canvasDimensionsRef.current.height*canvasDimensionsRef.current.width,' ');
+    setDivContents(canvasData);
+  }
+
   function handleKeyPress(e){
-    
+
     if(textSelectable)
       return;
+
     //stop the event from bubbling, so this is only called once
     e.stopPropagation();
 
@@ -1088,7 +1095,6 @@ function App() {
     in the input boxes/outside the page doesn't trigger text entry.
     Enter key still works tho, so you can enter new canv dims
     */
-    console.log(e);
     if((e.target === document.body) || (e.key === 'Enter')){
     }
     //u were focused elsewhere
@@ -1134,6 +1140,11 @@ function App() {
           pasteClipboardContents();
           return;
         }
+      }
+      //clear all with ctr+slash, ctrl+backspace is handled in backspace handler
+      else if((e.key == '/' || e.key == '\\')&&e.metaKey){
+        clearCanvas();
+        return;
       }
       //select all
       else if(e.key == 'a'){
@@ -1185,6 +1196,10 @@ function App() {
       setCurrentChar(e.key);
     }
     else if(e.key === 'Backspace'){
+      if(e.metaKey){
+        clearCanvas();
+        return;
+      }
       setDivContents(writeCharacter(index,' ',textData));
       if(advanceWhenCharacterEnteredRef.current && index > 0){
         setActiveCharIndex(index-1);
@@ -1238,14 +1253,12 @@ function App() {
       if((canvDimSliders.width != canvDims.width) || (canvDimSliders.height != canvDims.height)){
         setDivContents(resizeCanvas({width:canvDimSliders.width,height:canvDimSliders.height},textData));
       }
-      //if ur typing like normal, this key starts a newline
-      else if(advanceOnPress){
-        setActiveCharIndex(index+canvDims.width - index%canvDims.width);
+      else{
+        if(e.shiftKey)
+          newLine(index,1,textData);
+        else
+          setActiveCharIndex(index+canvDims.width - index%canvDims.width);
       }
-      else if(e.shiftKey)
-        newLine(index,-1,textData);
-      else
-        newLine(index,1,textData);
     }
   }
 
@@ -1256,6 +1269,12 @@ function App() {
       finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
     }
     return finalString;
+  }
+
+  const keyboardShortcutStyle = {
+    // marginLeft:'40px',
+    fontFamily:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    color:"#ffee00ff"
   }
 
   const asciiDisplayStyle = {
@@ -1295,36 +1314,7 @@ function App() {
     color:'#ff66bfff',
   }
 
-  const aboutText = (
-    <>
-    This is a sketchbook designed for imagemaking with monospace text. I use it for drawing and sometimes for writing.
-    <br></br>
-    <br></br>
-    You can draw using your mouse and different brushes, or rasterize images from your computer. This page stores your drawing as raw HTML text which can be copy-pasted.
-    <br></br>
-    <br></br>
-    This page is part of an <a style = {{color:"#ffee00ff"}}href = "">ongoing project</a> exploring manipulations of digital data based on physical and organic processes.
-    <br></br>
-    <br></br>
-    Understanding technology as a physical, human, inherently political resource--as opposed to the neutral, fingerprint-less identity most tech companies portray it as--limits our ability to conceptualize the labor, violence, and natural resources that go into producing, maintaining, and integrating ourselves with technology.
-    <br></br>
-    <br></br>
-    <div className = "ascii_graphics" style = {{margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>
-{`                                 /--/+---------      .    ..                          
-                                |  | ........ /    \`\`\`..........                      
-        ________________________/_/ .._....._/___\`_\`...\`\` \`\`\`....\`\` \`\`                
- __--^^^  \\             _______                    \\ \`\`\`\`\`\`\`\`  \`\`\`\`\`\`     \`\`\`\`\`\`\`\`\`\`  
-<.........|..       ... )**====). __   __  __ - ---|  \`\`        \`              .......
- ^^--;;;../ ..... .... /**====/...\\          \\-----/         ..... ............  ..   
-        \`\`^^^\`\`\`\`\`^^^^\`\`\`\`\`\`\`\`^^T^\\__________\\^^\`^ \`\` ............  ....             
-                                \\--.-------       \`\`\`\`\`\`\`\`\`\`   \`\`                     
-                                                     \`\`  \`\`                           
-`}
-    </div>
-    <br></br>
-    Missile guidance systems are written with the same alphabet, the same text encoding, and stored in the same ascii format as what you create on this page. Abstracting technology from its physical reality is a strategy for depersonifying the people targeted by it, and alleviating the consequences for those who develop it.
-    <br></br>
-    <div className = "ascii_graphics" style = {{margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>{` ._-\\                           +....                                                 
+  const ascii_rose = <div className = "ascii_graphics" style = {{fontSize:'6px',margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>{` ._-\\                           +....                                                 
  \\   \\\\                          .   \\.                         __,^._________________
 /_| \\=  .                        \\.   )                       ,............ ....._=-^ 
 +{ #.  =..\\_                      .    .                ,.......          |/          
@@ -1333,13 +1323,82 @@ function App() {
   /__/ /            /..........\\___\\..y _,^........\`                                  
  ^   |/          .+     .  , \\.............------/                                    
                ._     _/         ,                                                    
-              ,x..._;^                                                                `}
-    </div>                                                           
+              ,x..._;^                                                                `}</div>
+  const ascii_rocket = <div className = "ascii_graphics" style = {{fontSize:'6px',margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>
+{`                                 /--/+---------      .    ..                          
+                                |  | ........ /    \`\`\`..........                      
+        ________________________/_/ .._....._/___\`_\`...\`\` \`\`\`....\`\` \`\`                
+ __--^^^  \\             _______                    \\ \`\`\`\`\`\`\`\`  \`\`\`\`\`\`     \`\`\`\`\`\`\`\`\`\`  
+<.........|..       ... )**====). __   __  __ - ---|  \`\`        \`              .......
+ ^^--;;;../ ..... .... /**====/...\\          \\-----/         ..... ............  ..   
+         \`\`^^^\`\`\`\`\`^^^^\`\`\`\`\`\`\`\`^^T^\\__________\\^^\`^ \`\` ............  ....             
+                                \\--.-------       \`\`\`\`\`\`\`\`\`\`   \`\`                     
+                                                     \`\`  \`\`                           
+`}</div>
+
+  const aboutText = (
+    <>
+    {ascii_rose}
+    +---------------------------------------------------------------------+
+    <div style = {{marginLeft:'10px',marginTop:'10px'}}>
+    This is a sketchbook designed for experimenting with monospace text. I use it for drawing and for writing. The sketchbook is raw HTML text which can be copied or pasted into from other sources.
+    </div>
+    <br></br>
+    +---------------------------------------------------------------------+
+    {ascii_rocket}
+    <br></br>
+    <div style = {{marginLeft:"10px"}}>
+    <span style = {keyboardShortcutStyle}>the basics</span><br></br>
+    Typing text enters it into the canvas at the cursor location. The cursor can be moved by clicking, the arrow keys, or by typing if 'advance cursor when typing' is ticked.
+    <br></br><br></br>
+    Shift clicking+dragging will create a selection box, which can be cut, copied, moved with the arrow keys, or dragged with the mouse. By default, whitespaces will be treated as "transparent" when moving or pasting text, but can be preserved by unticking "blend transparent areas."
+    </div>
+    <br></br>
+    <div style = {{marginLeft:"10px"}}>
+    <span style = {keyboardShortcutStyle}>drawing</span><br></br>
+    </div>
+    <div style = {{marginLeft:"40px"}}>
+    The character drawn is the last character pressed, show in the top left display box.<br></br><br></br>
+    <span style = {keyboardShortcutStyle}>Brush</span> ~ draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic brush' to draw lines that resize thickness based on mouse speed.<br></br>
+    <span style = {keyboardShortcutStyle}>Lines</span> ~ draw straight lines by dragging the mouse.<br></br>
+    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.<span style = {keyboardShortcutStyle}> Uploading or changing image settings will always overwrite the current canvas! </span><br></br>
+    </div>
+    +---------------------------------------------------------------------+
+    <br></br>
+    <div style = {{marginLeft:"10px"}}>
+    <span style = {keyboardShortcutStyle}>shortcuts</span><br></br>
+    </div>    <div style = {{marginLeft:"40px"}}>
+    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....select all<br></br>
+    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....undo<br></br>
+    <span style = {keyboardShortcutStyle}>Cmd+X</span>.....cut selected area<br></br>
+    <span style = {keyboardShortcutStyle}>Cmd+C</span>.....copy selected area<br></br>
+    <span style = {keyboardShortcutStyle}>Cmd+V</span>.....paste clipboard<br></br>
+    <span style = {keyboardShortcutStyle}>Cmd+Backspace or /</span>...clear Canvas<br></br>
+    <span style = {keyboardShortcutStyle}>Backspace</span>...delete character<br></br>
+    <span style = {keyboardShortcutStyle}>Arrow keys</span>...move cursor or translate selected text<br></br>
+    <span style = {keyboardShortcutStyle}>Arrow keys + Shift</span>...translate row/column<br></br>
+    <span style = {keyboardShortcutStyle}>Enter</span>...move cursor down a line<br></br>
+    <span style = {keyboardShortcutStyle}>Enter+Shift</span>...insert blank line<br></br>
+    </div>
+    {/* Understanding technology as a physical, human, inherently political resource--as opposed to the neutral, fingerprint-less identity most tech companies portray it as--limits our ability to conceptualize the labor, violence, and natural resources that go into producing, maintaining, and integrating ourselves with technology. */}
+    <br></br>
+    {/* Missile guidance systems are written with the same alphabet, the same text encoding, and stored in the same ascii format as what you create on this page. Abstracting technology from its physical reality is a strategy for depersonifying the people targeted by it, and alleviating the consequences for those who develop it. */}
+    {/* <br></br> */}
+    {/* {ascii_rose}                                                      */}
 
     <br></br>
+    <span style = {{marginLeft:'10px'}}>
     made by <a style = {{color:"#ffee00ff"}}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
+    </span>
     </>
   )
+
+//    _.   _.   _.                                     
+// '  \-'  \-'  \                                    
+//  ^\ \'^\ \'^\ \                                   
+// ._/.__/ ._/  ._/                                  
+                  
+
   const highlightColor = '#ff0000ff';
   const aboutTextStyle = {
     zIndex : 2,
@@ -1411,7 +1470,7 @@ function App() {
     height:'fit-content',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
-    marginTop: '100px',
+    marginTop: '120px',
     position:'relative',
     whiteSpace: 'pre',
     fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
@@ -1439,9 +1498,7 @@ function App() {
     backgroundColor:'transparent',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
-    position:'fixed',
-    top:'10px',
-    right:'10px',
+    marginLeft:'20px',
     direction: 'rtl'
   }
 
@@ -1494,7 +1551,7 @@ function App() {
       let pasteRow = clipText.substring(y*clipTextDims.width,(y+1)*clipTextDims.width,dimensions.width+y*clipTextDims.width);
       
       //overlaying blank characters, like they're transparent
-      if(blendTransparentAreas){
+      if(blendTransparentAreasRef.current){
         let tempRow = '';
         for(let i = 0; i<pasteRow.length; i++){
           //if it's a blank character, grab the character from the underlying canvas
@@ -1538,7 +1595,7 @@ function App() {
           const activeChar = activeCharIndexRef.current;
           let dimensions;
           //if the user has already stored data in the clipboard from sketchbook, it'll have dimensions with it
-          if(clipDims != undefined){
+          if(clipDims !== undefined){
             dimensions = clipDims;
           }
           //if not, paste it into the selectionbox
@@ -1546,9 +1603,23 @@ function App() {
             dimensions = {width:Math.abs(selBox.startCoord.x - selBox.endCoord.x),height:Math.abs(selBox.startCoord.y - selBox.endCoord.y)}
           }
           else{
-            dimensions = canvDims;
-            text.padEnd(dimensions.width*dimensions.height);
-            text = text.substring(0,dimensions.width*dimensions.height);
+            //get the widest part of the clipboard text, to turn clipboard into a rectangle
+            //break it into strings by newline
+            const lines = text.split('\n');
+            let width = 0;
+            for(let line of lines){
+              if(line.length > width){
+                width = line.length;
+              }
+            }
+            text = '';
+            //pad each line to be 'width' characters long
+            for(let line of lines){
+              line = line.padEnd(width,' ');
+              text += line;
+            }
+            //set the dims to the new clipboard bounding rectangle dims
+            dimensions = {width:width,height:lines.length};
           }
           const coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
           setDivContents(pasteText(text,dimensions,coords,canvasText,canvDims));
@@ -1574,6 +1645,7 @@ function App() {
       </div>
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
+        {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {/* <div className = 'help_text'>cursor: (x:{activeCharIndex%canvasDimensions.width} y:{Math.trunc(activeCharIndex/canvasDimensions.width)})</div> */}
         <div className = 'ascii_button' onClick = {(e) => {setTextSelectable(!textSelectable)}}>selectable text [{textSelectable?'X':' '}]</div>
@@ -1585,11 +1657,7 @@ function App() {
         <Dropdown label = 'drawing mode' callback = {(val) => {setDrawingMode(val);}} value = {drawingMode} options = {['line','brush']}></Dropdown>
         {drawingMode == 'brush' &&
         <>
-          <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
-          {/* brush preview */}
-          <div style = {brushPreviewStyle}>
-            {addLineBreaksToText(getBrushCanvas(brushData.brushSize),{width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
-          </div>
+          <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setShowBrushPreview(true)} onMouseLeave = {() => setShowBrushPreview(false)}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
           <div className = 'ascii_button' onClick = {() => {setUseDynamicBrush(!useDynamicBrush)}}>{'dynamic brush ['+(useDynamicBrush?'x':' ')+']'}</div>
         </>
         }
@@ -1633,9 +1701,9 @@ function App() {
         {/* paste text to canvas from clipboard */}
         <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
         {/* clear canvas */}
-        <div className = "ascii_button" onClick = {(e) => {let canvasData=``;canvasData = canvasData.padStart(canvasDimensions.height*canvasDimensions.width,' ');setDivContents(canvasData);}}>clear canvas</div>
-        <ColorPicker label = 'background color' defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
-        <ColorPicker label = 'text color' defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear canvas</div>
+        <ColorPicker label = 'background color' backgroundColor = {backgroundColor} textColor = {'#000000'} defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
+        <ColorPicker label = 'text color'  textColor = {textColor} backgroundColor = {'transparent'} defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
         
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
@@ -1651,7 +1719,14 @@ function App() {
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }
+        {/* {ascii_rocket} */}
         </>}
+        {/* brush preview */}
+        {showBrushPreview &&  
+        <div style = {brushPreviewStyle}>
+          {addLineBreaksToText(getBrushCanvas(brushData.brushSize),{width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+        </div>
+        }
       </div>
       {/* canvas */}
       <div className = "canvas_container" style = {canvasContainerStyle}>
@@ -1664,7 +1739,7 @@ function App() {
           <div className = "resize_preview_box" style = {resizePreviewStyle}/>
         }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" onMouseMove = {textSelectable?nullHandler:handleMouseMove} onMouseDown = {textSelectable?nullHandler:handleMouseDown} onMouseUp = {textSelectable?nullHandler:handleMouseUp} onClick = {textSelectable?nullHandler:handleClick}  style = {canvasStyle}>
+        <div className = "ascii_canvas" onMouseMove = {textSelectable?nullHandler:handleMouseMove} onMouseDown = {textSelectable?nullHandler:handleMouseDown} onMouseUp = {textSelectable?nullHandler:handleMouseUp}  style = {canvasStyle}>
           {addLineBreaksToText(divContents,canvasDimensions)}
         </div>
         <div className = "canvas_background" style = {backgroundStyle}>

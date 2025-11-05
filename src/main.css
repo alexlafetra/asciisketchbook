@@ -29,8 +29,7 @@ html{
     position: sticky;
     grid-area: ui;
     left:40px;
-    top:40px;
-    margin-top:100px;
+    margin-top:40px;
     height:fit-content;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size:12px;

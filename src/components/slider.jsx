@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function Slider({maxLength,label,callback,min,max,stepsize,defaultValue}){
+function Slider({maxLength,label,callback,min,max,stepsize,defaultValue,onMouseEnter,onMouseLeave}){
 
     const [value,setValue] = useState(defaultValue);
     const [defaultVal,setDefaultVal] = useState(defaultValue);
@@ -37,7 +37,7 @@ function Slider({maxLength,label,callback,min,max,stepsize,defaultValue}){
         pointerEvents: 'none'
     }
     return(
-        <div className = "slider_container">
+        <div className = "slider_container" onMouseEnter = {onMouseEnter} onMouseLeave = {onMouseLeave} >
             <span className = "slider_label" >{label + ":" + value}</span>
             {(value != defaultVal) && <span className = "slider_reset_button" style = {{cursor:'pointer'}}onClick = {(e) => {callback(defaultVal);setValue(defaultVal);}}>[x]</span>}
             <input className = "slider" type = "range" min = {min} max = {max} step = {stepsize} value = {value} onInput  = {callbackFn} style = {sliderStyle}>
