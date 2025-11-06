@@ -1392,13 +1392,7 @@ function App() {
     </span>
     </>
   )
-
-//    _.   _.   _.                                     
-// '  \-'  \-'  \                                    
-//  ^\ \'^\ \'^\ \                                   
-// ._/.__/ ._/  ._/                                  
-                  
-
+  
   const highlightColor = '#ff0000ff';
   const aboutTextStyle = {
     zIndex : 2,
@@ -1455,9 +1449,8 @@ function App() {
     width:'1ch',
     height: lineHeight+'em',
 
-    //-1px for the border
-    left: 'calc('+String(activeCharIndex%canvasDimensions.width) + 'ch - 1px)',
-    top: 'calc('+String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em - 1px)',
+    left: String(activeCharIndex%canvasDimensions.width) + 'ch',
+    top: String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em',
     lineHeight:lineHeight,
     letterSpacing:textSpacing+'px',
     fontSize:fontSize+'px',
@@ -1706,8 +1699,8 @@ function App() {
         <ColorPicker label = 'text color'  textColor = {textColor} backgroundColor = {'transparent'} defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
         
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={fontSize} min = {1} max = {20}></Slider>
-        <Slider maxLength = {20} label = {'spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
-        <Slider maxLength = {20} label = {'line height'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
+        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
      
         <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
         {imageRenderer.imageLoaded &&
