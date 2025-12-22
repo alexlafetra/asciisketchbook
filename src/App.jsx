@@ -1,65 +1,16 @@
-import { useState , useEffect , useRef} from 'react'
+import { useState , useEffect , useRef , Children} from 'react'
 import React from 'react'
 import ColorPicker from './components/colorpicker';
 import Slider from './components/slider';
 import './main.css';
 import Dropdown from './components/dropdown';
-import FilePicker from './components/filepicker';
 import NumberInput from './components/numberinput';
 import AsciiPaletteInput from './components/asciipaletteinput';
+import { ascii_rose,aboutText } from './about';
+import { DropZone } from './components/dropZone';
+import { presets } from './presets';
+
 function App() {
-
-  const presets =  [
-    {
-      title: 'house',
-      data : `                                                                                                                                                                                                                                   #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                 .           |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                 '   #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
-      height : 25,
-      width : 50
-    },
-    {
-      title:'wire',
-      data : `                                                             #\\                                                 .\\                        y                        \\\\                      /.           _.            \\\\                    //            . \` --.       \\ \\                  ./              ._   \`\\\`\`\`-_  \\ \\__.             ;/              \`\`\`-_   \\    \`\`\`\\ \\ \\-.          / *                   \`\`\`\`\`-_  \\  \\ \\ \\ \\-,      : /                            \`\`\`\`.\\ \\ \\ \\ \\--. / ;                                 / y_. \\ \\ \\. \\ /                                 / /   \\_\\ \\ \\\\ \\ \`\`\`\`-_                          //\`       \\_\\ \\\\ \\      \`.\`\`\`-_                  //            \`-\`\\ \\\`\`\`-_  \\     \`\`\`             {.                 \\ ;    \`\`\`---_                                     \\ \\          \`\`\`\`                                  \`\\                                                 \`}                                                                                                                                                                                                                                                                                                                                                                            `,
-      height : 25,
-      width : 50
-    },
-    {
-      title : 'star portrait',
-      data :`                                                                                                                                                                                                                                                                                                                                /                                                                                                                                                                |                                     .|                                               //                                                                                                               ||                                  /. |                                             ../                                   \\\\                                                                          |.|                                 ..  |                                           .. /                                    \\ .\\\\\\                                               ;                      |. |                               .    |                                        /..  /                                      \\ .  \\\\\\\\                                      [%%%%#                     |.  |                             /.     |                                      /..   /                                        \\ .     \\\\\\                               l%/~\' ,%)                      |.   |                           /.     |                                     ...    /                                          \\\\.       \\\\\\\\                         /%~    1~%%                     |.     |                         ..      |                                  /..      /                                             \\.          \\\\\\\\                   %%,       ]%\\\"                    |.     |                        .        |                                /..       /                                               \\..            \\\\               _%         \`/%%                     .       |                     /.         |                              /..        /                                                 \\ .       %.*     &0 {%?%%% <[%%           ;%%%                   |.       |                    /.          |                           /...         /                                                   \\ .      %%%%%%0(}%0^       >              %%,}                  |.        |                  ..           |                         /..           /                                                     \\ .       %%<                             \"%%%%%%*|+(/%%%*%\\&\\1|.          |               /.             |                       /..            /                                                       \\ .       >%<                                                 |.  [%%%%1:}|              /.              |                     /..             /                                                         \\\\.       \"%%                                         ^l{%%:|.) ,%<%%%%%%%|%;%%%_ -    /.               |                  //..              /                                                            \\.         %%%                                   %%?+%}   |.            |^%%}% \"    ..%%>.            |                /...     >         /                                                              \\.         l%%#                            ]&%\"         |.              |        /. ,[#,     ~  >*+: |              /..       1%%(      /                                                                \\.          \\%                         !%%             |.               |      /.           \\~%{!   |   ,%%l    //..       >%>\`  %    /                                                                  \\.         *                           #%!            |.               |     /.                   | .?l\"     //..%<     \' /%;    %[                                                                      \\..      ,%                            %%.          |.                 |  /..                    |     ^] /...        1&%%~      {%                                                                      \\ .     0\`       :,%]!)*             %%            |.                 | /.                      |     //..  ?#                    <                                                                      \\\\.    *       ;%%%~&%%(0          ,%%_\\\\        |.                   ..                       |   //..         \\*l               %                                                                       \\.   %      {%\\      >%%%)<:}    ,%!   \\\\\\     |.                                            | //..              \'%              ^&                                                                      \\.  %     :\\           \"?%%%%%  %*       \\\\\\ |.                                             |/..                (%,                <_                                                                    \\. %    #%                \`<%%%%/          \\\\.                                                                %%<                     *                                                                  \\ %   ~%;                    %%                                                                             \"%                        \`%                                                                 0   !%                                                                                                    %%%%+%%*]\\{#>%%      ^\`       ?                                                               &  __                                                                                                             /       %    :>   #^%%&%\\                                                           <*: #% .                                                                                                           /         0    [         \` *                                                         ~/  %?\\ .                                         ..............---............---   ...                          /           >   ,+                                                                    %;-%%  \\ .                                    ....... .............               ------.....-                   /             !   %                                                                    %-%_    \\ .                               .....//..                                         ::..                /               !  %                                                                    \'%%      ..                              .... ...    >                                        ::\\\\             /                 0 <                                                                    %%%      \\ .                            ... ..                                                  ::\\\\          /                  :& ~                                                                    a&       \\..                          .....                                                      :::\\       /.                   ; %                                                                    %         \\..                       .. .                                                          ..:       ....                  l/%                                                                  %%          . .                    ... .                                                            . .        ....                 %%                                                                   %           . .                  . .. .          ..                                                . .          ...\\               _%                                                                   %            . .                  . .. .      ... .....                                             ..            ...\\              %\'                                                                  %             . .                ..  . .    ..     ssss....                                         ...             ..\\\\             l                                                                 \`/              \\.               ... .. ..                ss                                          ..              //                                                                                \'               \\ .              .;.....     ......                                          sssssss  .             //                 :                                                                %                \\ .             |;..           lll##...          s                     sssss         .           //                   |                                                                1                 \\ .            |;.        . . ll#######.                                           .          //                                                                                      >                  / .         ;;|; .         ... ###### //                      ss     .........    .        //                                                                                       0                 //..           ; ;,.      ,     .....\\./#                          .... 000####.           //                                                                                         .               //..             ;.;,.                                                .000.#####..#         /\\                                                                                                         / .                ;;,.                                                  ..#s#### $ #        ..\\\\                                                                                                     //..                 ; ,.                                               ... \\0,###s0 . .         ..\\\\                                                                                                 //..                   ;.,.            # #                                   ... ,,,,# .             ...\\\\                                                             .                               /..                     ;., .             #                                      ,,,,,  .                ..\\\\                                                                                         //.                        ;.,.                                                     ,,,,  .                  ...\\\\                                                                                    //..                         ;.,.                                                          .                      ..\\\\                                                                                 /..                           ;.,.                                   x             # #      .                        ..\\\\                                                                             //.                             ;.,.                      s s                        #       .                           ...\\\\                                                                        //..                               ;, .                      s ss           s          #       .                              ..\\\\                                                                     /..                                \\;. .                       ssss         s           .      .                                 ..\\\\                                                                 //.                                    .,.                          ss sss                       .                                  ///\\\\                                                             //..                                     #; .                                                     .                           ////////                                                                 /..                                       .;,.                                                     .                   ////////                                                                       /..                                         #; ,.                                                   .            ////////                                                                             //.                                           #.;,.                                    .             .        /////                                   l                                                /..            /                                #;;,.               (((                              .         \\                                       \\                                              /..              (%      -----/                   #;; ,.           ((((((00000   00                   .           \\                                     %&                                            //.     --------- !%%------     /.                  ## ;, .               s  ssssssss000 \\             .            \\                                     %0                                           ---------          |%%%.         /.                   \\##;, .                                          .             \\                                    0{%%                                                              |%%%         /.                    \\\\#;, .                oooooo                 ..               \\                                   % !%                                                              1%\"%%        /.                      \\#;; .                                    ..                 \\                                  %#  %.                                                            %%\\  *)      / .                       \\\\,; .                                 ..                   \\                                 -%   >%                                                           .%%   ~%      /.                          \\\\\\ .                              ..                      \\                                %     %                                                           :%%    <!     /.                             \\\\...                         ..                        \\                               {)     %>                  #                                        ! ~    \">    /.                               \\\\\\....                .....                           \\                              -[      %>               \"}                                          ,%      %/   .                                  \\\\...,.       ......                                \\                              [^      ]%             *%%%                                          {%\"       +\"                                           .......                    \\\\                \\                              %        %!         %%%%%%#                                          !%%\'        %            \'%%%%%/%%%%*~                                           |  \\\\               \\                             %         %# +%%%#^%    \\,                                            %%,         %%;% 1\"_%%%\\}     ^%%%*                                            |     \\\\             \\                            %          l_*\"         !%                                             %%,          ;\'?/}[]         &&%~                                             |        \\\\                                       %[                      \`%                                 \`<?%)%%[%%%%]                            0%>                                              |           \\  >     .%%% \"  >.                 1%%%?                     <%\`                         \\%}<#%%%%%%%&%_ > >                             ~%,                                              |                %%%%%%%%%\']!\'     \'%~1%(%%%/> l                          %?\'                             #.0%% ^                                      %*                /\\                            |                \\ ^\'%%}_%%%%%%%%:                                       !]1                                     +|%<^                               ]%%                // \\.                         ||                  \\\\     \\ ; < %>%%?0                                   <~                                           \')%}                            %?,             ///    \\.                       |                      \\\\   \\       \' :\\%%%%                            \"%%0                                                1%%                         %%\`           //       \\.                      |                         \\   \\           \`)%%%%                          ]%{,                                                   \`/%                      l0|        //          \\.                    |                           \\\\\\\\              \`%&>_                         %%                                                      %                       **%%%%#!              \\ .                  |                              \\\\            ~%]\"                             %%                                                     %%                            :(%%%            \\ .                |                                 \\       \" %0                                 (%%                                                     %;           *%%%%              %%%%%%\`]      \\ .               |                                   \\  1\"%%%              %%%%%^ \' ,%%%%         %%)                                                    **        _[%%#    %%               & %+%%(%   \\ .                               ^ |[#%&%%#^%%%%%%%%%%%%l         /%%%                   /]%%0!   [%\\                                                    %~      \'%%:     //   ^%%)((#:\`  \'     ^,0%%%%%1 ,>  . }\"\'          _]\\%%%%]<1>&/,^  )%%|%%%%>             ~\\%^                               %%%%%%_                                                   _%.    }%%%%   //           [0\"  ^%%         .%%%%%/%%%%%%%]%l%%%%%#%%*                        %%%%%)%{%%?:                                         \\(                                                 . %   \'%%%%l ///                                            |                                                                                                                                          /. %1{%%%   //                                      \\.      |                                                                                                                                           .  -%%%%[!#                                         \\.     |                                                                                                                                           /.  [%%^.                                             \\.   |                                                                                                                                           /.  //.                                                \\.   |                                                                                                                                           ////                                                    \\. |                                                                                                                                           //                                                       \\.|                                                                                                                                                                                                      |                                                                                                                                                                                                                                                                                                                     aaaaaaaaaaaaaaaaa`,
-      height:100,
-      width :200
-    },
-    {
-      title : 'small star',
-      data :`                                                                                                                               .                                                                          .                                                                                                                                  ; :\'                                                                                                                                                                                                                                                             ;\'       ^                                                                                                                       .\'          \'                                                                                                                    :      , ^                                                                                                                                                                                                                                                         :      .                                                                                                                          \`\`                                                                                                                               \' ,         , :;                                                                                                                                                                                                                                                    \'^^     \`   ^:    \"                                                                                                             \`     \`          \' \`                                                                                                              \`   .             ,;^                                                                                                                   \'      ,      ,                                                                                                            #     .         :     :                                       [                                                                    \`  \`^ .   :   .:   \`    ::                         \'  .\'^ $ $                                                                    \`      :\'\" \"\';\"   \"       : ;ll               >   l     ! \'>-                                                                   \`\`   .     ^ \'\'   .   \`    : ,.\"\". :::^     *[ +  :      ! >                                                                        .    : \'\':   \`              : : :           .           $                                                                     :   ~\"  ,;: ;;: \' . ;      .;            \'             \' :                                                                     \` ;     ,    ,;:\`^  ; \"                                                                                                   :\":: : ,           ^\"^;;;;;\" \"              ,   \"\'   \',^      !   ..                                     ,                      ^:\`   ,:         \'   \" \`;;; ;;\";\'     l \" l  lll:l\` ll .        ....                                       :   \` :.  :  \`:    \" : ,   .\'           !\'\' \`;\`;;ll;^ :. \"     l;;ll\`\`l l!lll!         ..                                      ::\`          . ,      \'^ .                . : .^ ;;ll;;\"ll. ll : ,^lll!lll   ^                                                  : .\"^                                    \" ,<;\`\`.:;lllllllllll\"l!!!!!!l!!!!\'l,\` \`        .                                        : :                            ^!  l  ;! !,,>-:\`.:llllllllllllll!l!!!!!:;!!!l ,!       .                                              \"           .\"        :.^ ;l. \` ;;;;;;::!!;,^:;;;;;;;lllllll!ll!lll :!  ,        ..                                              ;l             ; ! .\`!  l!!!!\'\`!###>>########!#!ll!!l!!!ll!!!!!#!#>#!!l  ^   \"  ..                                                  \`\"  ,            , !!!!##########>##>ll<~!;:l!###############l,^> \'   ,      ..                                                     ;     \"  .       ^ l !!!!#!!##>###>:,_];^\':lll!l!!!!!!l!!!! l  !   ^ l  l  .                                                         \`lll           \`l  ^#^\'##>#####>::_[;\"\';lll!l!!!!!,l\'l,!!     \`     !#                                                                           \"  l !!! #>#>#>#>:,_[;\"\`:ll!!!!!!!!;!# # \"^       \'!:                                                                ;l:^\`            \`!\`,.;!#>##>>::-};,\`:l!!!!!!!!!; \`  ,       !                                                                     l\`; \"     ^    #,!^ :###>>>>>;:-};,\`:!!!!!\'!####                                                                                      \'  :          !# ^!l##>:<;:-{!,\`:!!#!##!\'!#\':        \';                                                                           # !\` \`     , .;  # <>>>><l:-}!:^;!!#!# \` #\'          ,                                                                           l#; \`.>    .  l\">>>><<<>+~l;-)!,^;!!!##!! :#                                                                                      ! .l\"            ^><<~~+<~l;_)!:^;#!####l  l                                                                                     !!    \' \`!   . \`  <<~<<<~~~!;~\!;\";####! . :                                                                                     ,\" \`         \'\':::,:::;;;;ll;;;l;;::;;;;\`;                                                                                       ;^^ :    \'  ^ll\`!l!lllll\';;:!^l;l;llllll\": \`  .                                                                                  ;, . ^     \`^\`#!ll!!:: \'\"l! !:!! : llll!l:  \`\'                                                                                     , \"  .      .!l;;ll: ;\"ll\` ll  !!;:l l ; :                                                                                       ;;   .  \'  \`:l lll    ;lll l^:^\"^\",l\`^ l, :    \"                                                                              \"; ^     \' \'^; ;;l;\'l;  \' \'  \":  :  ^\",;ll; ^    l                                                                               \"\` \":,    . \"\":,\';,\'^l           \'; l l  \';l ^   :\'.                                                                               ^^   : : : ;l:    ;     ::       \".!l  :!          ;                                                                         ::,  \`\"\`,: ::;   ;   \' ;     .       ;;      l l     ;                                                                           ::   ^   ,   , ^ :      :                     ,        l.                                                                       :,   \`     \`. ;        ,   ^,:,:,, \`   l          l     !l                                                                      ,,, :^         \"   \`             :\'\` \'   \"        , \" ^                                                                           ^     \`  .   ,   l :               ; \`,   \'           \'                                                                            \"\`          \'\"                                      ,                                                                         ,           \'.^ \";                                                                                                           ,\" \"            :\"^\"                             \'!    \`                                                                              ,   .      \'                       .                , ^l ;                                .                                   ,,         ^;;l                                                                                                                    \"   . l# ^                                                                                                                    ;!  . ,  !#                                                                                                                          ^: ,                                                                                                                                                                                                                                                                                                                                                                                          `,
-      height: 65,
-      width :130
-    },
-    {
-      title : 'rose',
-      data :`  ._-\\                           +....                                                  \\   \\\\                          .   \\.                         __,^._________________/_| \\=  .                        \\.   )                       ,............ ....._=-^ +{ #.  =..\\_                      .    .                ,.......          |/          /_#^ /  \\........_                .   : \"           ,^....                              _.  _-)   ---- ......_______    \\..  /         ,....                                  /__/ /            /..........\\___\\..y _,^........\`                                   ^   |/          .+     .  , \\.............------/                                                   ._     _/         ,                                                                  ,x..._;^                                                                `,
-      height:10,
-      width:86
-    },
-    {
-      title:'missile',
-      data:`                                 /--/+---------      .    ..                                                          |  | ........ /    \`\`\`..........                              ________________________/_/ .._....._/___\`_\`...\`\` \`\`\`....\`\` \`\`                 __--^^^  \\             _______                    \\ \`\`\`\`\`\`\`\`  \`\`\`\`\`\`     \`\`\`\`\`\`\`\`\`\`  <.........|..       ... )**====). __   __  __ - ---|  \`\`        \`              ....... ^^--;;;../ ..... .... /**====/...\\          \\-----/         ..... ............  ..           \`\`^^^\`\`\`\`\`^^^^\`\`\`\`\`\`\`\`^^T^\\\\__________\\^^\`^ \`\` ............  ....                                             \\--.-------       \`\`\`\`\`\`\`\`\`\`   \`\`                                                                          \`\`  \`\`                           `,
-      height:9,
-      width:86
-    },
-    {
-      title: 'test',
-      data:`                                                                                                                                                                                                                                   #  #                                               #          #                                     ###          #                                 ### /       # #                                  #  //      ###                                      /|#( (.#   ##|                               ,   ( (.#) #..  #/|                              . \\   ) )/ / . #./ /                             /// \\ /  /   /) ##  (                            ///// \\ ^  .-) ) # ) )                           ///  ///, ^/ # /  .  /                            |\\  // .=. ###/ ..  /                 .           |#\\ / /=  \\##  /    ##                  ##########|##\\ /==   \\ _) ^ #                   ##0##0####0#+###/====   \\) ^  ##7 7                 ###00###00#\\##|====== |# ) _^ 7                 \'   #####0##0#\\#|====   |## )                           #########\\|====== |#                                    ####+=======+                                                                                                                         `,
-      height:25,
-      width:50
-    },
-    {
-      title: 'small house',
-      data:`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             .^^.                                             //  \\\\                                            | _ #|                                            ||_|_|                                                                                                                                                                                                                                                                                                  .                                                                                                                                       `,
-      height:25,
-      width:50
-    }
-  ];
-
   const asciiPalettePresets = {
     symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
     full:`$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\`\'. `,
@@ -67,33 +18,48 @@ function App() {
   };
 
   //holds the processed jsx children
-  const [divContents,setDivContents] = useState(presets[0].data);
-  const [undoCanvas,setUndoCanvas] = useState(undefined);
+  const [asciiCanvas,setAsciiCanvas] = useState({
+    width:presets[0].width,
+    height:presets[0].height,
+    data:presets[0].data
+  });
+  const asciiCanvasRef = useRef(asciiCanvas);
+  useEffect(() => {
+    asciiCanvasRef.current = asciiCanvas;
+  },[asciiCanvas]);
+
   const [bufferCanvas,setBufferCanvas] = useState(presets[0].data);
   const [currentChar,setCurrentChar] = useState('a');
   const [activeCharIndex,setActiveCharIndex] = useState(0);
-  const [backgroundColor,setBackgroundColor] = useState('#ffffff');
-  const [textColor,setTextColor] = useState('#0000ff');
-  const [fontSize,setFontSize] = useState(12);
-  const [textSpacing,setTextSpacing] = useState(0);
-  const [lineHeight,setLineHeight] = useState(1.15);
-  const [canvasDimensions,setCanvasDimensions] = useState({width:presets[0].width,height:presets[0].height});
-  const [textSelectable,setTextSelectable] = useState(false);
-  const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
-  const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
-  const [drawingMode,setDrawingMode] = useState('brush');
-  const [showAbout,setShowAbout] = useState(false);
-  const [showBrushPreview,setShowBrushPreview] = useState(false);
-  const [escapeTextBeforeCopying,setEscapeTextBeforeCopying] = useState(true);
-  const [copyTextWithLineBreaks,setCopyTextWithLineBreaks] = useState(false);
-  const [blendTransparentAreas,setBlendTransparentAreas] = useState(true);
-  const [advanceWhenCharacterEntered,setAdvanceWhenCharacterEntered] = useState(true);
-  const [useDynamicBrush,setUseDynamicBrush] = useState(false);
   const [canvasDimensionSliders,setCanvasDimensionSliders] = useState(
     {
       width:presets[0].width,height:presets[0].height
     }
   );
+  const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
+  const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
+
+  const [settings,setSettings] = useState({
+    backgroundColor:'#ffffffff',
+    textColor:'#0000ffff',
+    fontSize:12,
+    textSpacing:0,
+    lineHeight:1.15,
+    textSelectable:false,
+    drawingMode:'brush',
+    showAbout:false,
+    showBrushPreview:false,
+    escapeTextBeforeCopying:true,
+    copyTextWithLineBreaks:false,
+    blendTransparentAreas:true,
+    advanceWhenCharacterEntered:true,
+    useDynamicBrush:false
+  });
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  },[settings]);
+
   const [selectionBox,setSelectionBox] = useState({
     started : false,
     finished : false,
@@ -131,22 +97,14 @@ function App() {
   );
 
   const activeCharIndexRef = useRef(activeCharIndex);
-  const divContentsRef = useRef(divContents);
   const lineDataRef = useRef(lineData);
   const bufferCanvasRef = useRef(bufferCanvas);
   const selectionBoxRef = useRef(selectionBox);
-  const canvasDimensionsRef = useRef(canvasDimensions);
   const currentCharRef = useRef(currentChar);
   const imageRendererRef = useRef(imageRenderer);
   const clipboardDimensionsRef = useRef(clipboardDimensions);
-  const blendTransparentAreasRef = useRef(blendTransparentAreas);
-  const undoCanvasRef = useRef(undoCanvas);
-  const advanceWhenCharacterEnteredRef = useRef(advanceWhenCharacterEntered);
   const canvasDimensionSlidersRef = useRef(canvasDimensionSliders);
   //making sure the callback can access "fresh" versions of state data
-  useEffect(() => {
-    advanceWhenCharacterEnteredRef.current = advanceWhenCharacterEntered;
-  },[advanceWhenCharacterEntered]);
   useEffect(() => {
     canvasDimensionSlidersRef.current = canvasDimensionSliders;
   },[canvasDimensionSliders]);
@@ -154,14 +112,8 @@ function App() {
     activeCharIndexRef.current = activeCharIndex;
   }, [activeCharIndex]);
   useEffect(()=>{
-    blendTransparentAreasRef.current = blendTransparentAreas;
-  },[blendTransparentAreas]);
-  useEffect(()=>{
     clipboardDimensionsRef.current = clipboardDimensions;
   },[clipboardDimensions]);
-  useEffect(() => {
-    divContentsRef.current = divContents;
-  }, [divContents]);
   useEffect(() => {
     lineDataRef.current = lineData;
   },[lineData]);
@@ -172,22 +124,10 @@ function App() {
     selectionBoxRef.current = selectionBox;
   },[selectionBox]);
   useEffect(() => {
-    canvasDimensionsRef.current = canvasDimensions;
-  },[canvasDimensions]);
-  useEffect(() => {
     currentCharRef.current = currentChar;
   },[currentChar]);
   useEffect(() => {
-    undoCanvasRef.current = undoCanvas;
-  },[undoCanvas]);
-  useEffect(() => {
-    imageRendererRef.current = {
-      imageLoaded:imageRenderer.imageLoaded,
-      gamma:imageRenderer.gamma,
-      contrast:imageRenderer.contrast,
-      imageSrc:imageRenderer.imageSrc,
-      needToReload:imageRenderer.needToReload
-    };
+    imageRendererRef.current = {...imageRenderer};
   },[imageRenderer]);
   //add keypress event handlers, but only once
   useEffect(() => {
@@ -196,6 +136,59 @@ function App() {
       window.document.removeEventListener('keydown', handleKeyPress);
     }
   }, []);
+
+  const undoBuffer = useRef([]);
+  const redoBuffer = useRef([]);
+  
+  function pushUndoState(){
+    //if the buffer gets long enough, start removing early entries
+    if(undoBuffer.current.length > 200){
+      undoBuffer.current.shift();
+    }
+    undoBuffer.current.push({
+      canvasData:asciiCanvasRef.current.data,
+      canvasWidth:asciiCanvasRef.current.width,
+      canvasHeight:asciiCanvasRef.current.height,
+      currentChar:currentCharRef.current,
+      activeCharIndex:activeCharIndexRef.current
+    });
+    //adding to the undo buffer resets the redo buffer
+    redoBuffer.current = [];
+  }
+  
+  function undo(){
+    if(undoBuffer.current.length === 0)
+      return;
+    const previousState = undoBuffer.current.pop();
+    redoBuffer.current.push({
+      canvasData:asciiCanvasRef.current.data,
+      canvasWidth:asciiCanvasRef.current.width,
+      canvasHeight:asciiCanvasRef.current.height,
+      currentChar:currentCharRef.current,
+      activeCharIndex:activeCharIndexRef.current
+    });
+    restoreState(previousState);
+  }
+  
+  function redo(){
+    if(redoBuffer.current.length === 0)
+      return;
+    const nextState = redoBuffer.current.pop();
+    undoBuffer.current.push({
+      canvasData:asciiCanvasRef.current.data,
+      canvasWidth:asciiCanvasRef.current.width,
+      canvasHeight:asciiCanvasRef.current.height,
+      currentChar:currentCharRef.current,
+      activeCharIndex:activeCharIndexRef.current
+    });
+    restoreState(nextState);
+  }
+
+  function restoreState(state){
+    setAsciiCanvas({data:state.canvasData,width:state.canvasWidth,height:state.canvasHeight});
+    setActiveCharIndex(state.activeCharIndex);
+    setCurrentChar(state.currentChar);
+  }
 
   function map_range(value, low1, high1, low2, high2) {
     return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
@@ -211,34 +204,22 @@ function App() {
       return imgData;
   }
 
-  function undo(){
-    const undoCanv = undoCanvasRef.current;
-    if(undoCanv === undefined)
-      return;
-    setDivContents(undoCanv.canvas);
-    setCanvasDimensions(undoCanv.dimensions);
-    setCanvasDimensionSliders(undoCanv.dimensions);
-    setUndoCanvas({
-      canvas:divContentsRef.current,
-      dimensions:canvasDimensionsRef.current
-    });
-  }
-
-  function copyText(data,dimensions){
+  function copyText(canvas){
     //if there's a selection box, copy from that instead
     const selBox = selectionBoxRef.current;
     if(selBox.finished){
       const topL = {x:Math.min(selBox.startCoord.x,selBox.endCoord.x),y:Math.min(selBox.startCoord.y,selBox.endCoord.y)};
       const bottomR = {x:Math.max(selBox.startCoord.x,selBox.endCoord.x),y:Math.max(selBox.startCoord.y,selBox.endCoord.y)};
-      data = copyArea(selBox.startCoord,selBox.endCoord,data,dimensions.width,' ').data;
-      dimensions = {width:bottomR.x-topL.x,height:bottomR.y-topL.y};
+      canvas = copyArea(selBox.startCoord,selBox.endCoord,canvas);
+      canvas.width = bottomR.x-topL.x;
+      canvas.height = bottomR.y-topL.y;
     }
-    if(escapeTextBeforeCopying)
-      data = escapeTextData(data);
-    if(copyTextWithLineBreaks)
-      data = addLineBreaksToText(data,dimensions);
-    setClipboardDimensions(dimensions);
-    navigator.clipboard.writeText(data);
+    if(settingsRef.current.escapeTextBeforeCopying)
+      canvas.data = escapeTextData(canvas.data);
+    if(settingsRef.current.copyTextWithLineBreaks)
+      canvas.data = addLineBreaksToText(canvas);
+    setClipboardDimensions(canvas);
+    navigator.clipboard.writeText(canvas.data);
   }
 
   function cutText(data,dimensions){
@@ -257,7 +238,7 @@ function App() {
     const cutResult = cutAreaAndFill(startCoord,endCoord,data,dimensions.width,' ',false);
     const text = cutResult.data;
     let cut = cutResult.cutData.data;
-    setDivContents(text);
+    setAsciiCanvas({...asciiCanvasRef.current,data:text});
     setClipboardDimensions({width:cutResult.cutData.width,height:cutResult.cutData.height});
     navigator.clipboard.writeText(cut);
   }
@@ -277,13 +258,13 @@ function App() {
 
   function convertImage(img){
     //70 char long
-    const outputDimensions = {width:canvasDimensions.width,height:canvasDimensions.height};
+    const outputDimensions = {width:asciiCanvas.width,height:asciiCanvas.height};
 
     const palette = asciiPalette;
     if(palette.length === 0){
       let warningString = '[no character palette to raster with]';
       warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
-      setDivContents(warningString);
+      setAsciiCanvas({...asciiCanvasRef.current,data:warningString});
       return;
     }
     const canvas = document.createElement("canvas");
@@ -319,23 +300,24 @@ function App() {
 
       newStr+= palette.charAt(paletteIndex);
     }
-    setDivContents(newStr);
+    setAsciiCanvas({...asciiCanvasRef.current,data:newStr});
   };
 
   function convertImageToAscii(src){
     if(typeof src === "string"){
       const img = new Image;
       img.onload = function() {
+        pushUndoState();
         convertImage(this);
+        setImageRenderer({
+          imageLoaded:true,
+          gamma:imageRenderer.gamma,
+          contrast:imageRenderer.contrast,
+          imageSrc:src,
+          needToReload:false
+        });
       };
       img.src = src;
-      setImageRenderer({
-        imageLoaded:true,
-        gamma:imageRenderer.gamma,
-        contrast:imageRenderer.contrast,
-        imageSrc:src,
-        needToReload:false
-      });
     }
 
   }
@@ -354,12 +336,13 @@ function App() {
     return top+str+top;
   }
 
-  function resizeCanvas(newDims,data){
-    const originalDims = canvasDimensionsRef.current;
+  function resizeCanvas(canvas,newDims){
+    pushUndoState();
+    const originalDims = {width:canvas.width,height:canvas.height};
     let newString = '';
     for(let r = 0; r<Math.min(originalDims.height,newDims.height); r++){
       //get the original row
-      let rowString = data.substring(r*originalDims.width,(r+1)*originalDims.width);
+      let rowString = canvas.data.substring(r*originalDims.width,(r+1)*originalDims.width);
       if(newDims.width<originalDims.width)
         rowString = rowString.substring(0,newDims.width);
       else
@@ -367,7 +350,6 @@ function App() {
       newString += rowString;
     }
     newString = newString.padEnd(newDims.width*newDims.height,' ');
-    setCanvasDimensions({width:newDims.width,height:newDims.height});
     return newString;
   }
   function startLine(index){
@@ -379,12 +361,12 @@ function App() {
       char : currentChar
     }
     setLineData(line);
-    //store a copy of div contents in buffer canvas, so you can draw arbitrary lines on top of divContents w/o loosing anything
-    setBufferCanvas(divContents);
+    //store a copy of div contents in buffer canvas, so you can draw arbitrary lines on top of canvas w/o loosing anything
+    setBufferCanvas(asciiCanvasRef.current.data);
   }
   function endLine(endIndex){
-    const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};
-    const end = {x:endIndex%canvasDimensions.width,y:Math.trunc(endIndex/canvasDimensions.width)};
+    const start = {x:lineData.startIndex%asciiCanvas.width,y:Math.trunc(lineData.startIndex/asciiCanvas.width)};
+    const end = {x:endIndex%asciiCanvas.width,y:Math.trunc(endIndex/asciiCanvas.width)};
     const line = {
       begun : false,
       moved : false,
@@ -393,20 +375,15 @@ function App() {
       char : currentChar
     };
     let tempCanvas = bufferCanvas;
-    tempCanvas = drawLine(start,end,currentChar,tempCanvas);
+    tempCanvas = drawLine(start,end,currentChar,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:tempCanvas});
     setLineData(line);
-    setDivContents(tempCanvas);
+    setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
     setBufferCanvas(tempCanvas);
-
-    setUndoCanvas({
-      canvas:bufferCanvas,
-      dimensions:canvasDimensionsRef.current
-    });
   }
 
   function getClickIndex(e){
     const coords = getClickCoords(e);
-    return coords.x+canvasDimensions.width*coords.y;
+    return coords.x+asciiCanvas.width*coords.y;
   }
 
   function getClickCoords(e){
@@ -416,8 +393,8 @@ function App() {
     };
     //px per char
     const characterDims = {
-      width : e.target.clientWidth / canvasDimensions.width,
-      height : e.target.clientHeight / canvasDimensions.height,
+      width : e.target.clientWidth / asciiCanvas.width,
+      height : e.target.clientHeight / asciiCanvas.height,
     };
 
     return {x: Math.trunc(clickCoords.x/characterDims.width),y:Math.trunc(clickCoords.y/characterDims.height)};
@@ -428,7 +405,7 @@ function App() {
     //set the cursor on the index where the mouse was released
     setActiveCharIndex(getClickIndex(e));
 
-    switch(drawingMode){
+    switch(settings.drawingMode){
       case 'line':
         const newIndex = getClickIndex(e);
         //if you already started a line
@@ -505,11 +482,8 @@ function App() {
 
         }
         else{
-          setBufferCanvas(divContents);
-          setUndoCanvas({
-            canvas:divContents,
-            dimensions:canvasDimensionsRef.current
-          });
+          setBufferCanvas(asciiCanvasRef.current.data);
+          pushUndoState();
         }
         return;
       }
@@ -526,16 +500,18 @@ function App() {
       };
       setSelectionBox(newBox);
       //store this version of div contents
-      setBufferCanvas(divContents);
+      setBufferCanvas(asciiCanvasRef.current.data);
     }
     else{
       const newIndex = getClickIndex(e);
-      switch(drawingMode){
+      switch(settings.drawingMode){
         case 'line':
           //start drawing a line
+          pushUndoState();
           startLine(newIndex);
           break;
         case 'brush':
+          pushUndoState();
           const coords = getClickCoords(e);
           // don't draw a character yet, until the mouse is moved
           setBrushData({
@@ -543,10 +519,6 @@ function App() {
             brushSize: brushData.brushSize,
             brush: brushData.brush,
             lastCoordinate:coords
-          });
-          setUndoCanvas({
-            canvas:divContents,
-            dimensions:canvasDimensionsRef.current
           });
           break;
       }
@@ -564,9 +536,9 @@ function App() {
   }
   function handleMouseMove(e){
     const newIndex = getClickIndex(e);
-    const canvDims = canvasDimensionsRef.current;
+    const canvDims = asciiCanvasRef.current;
     const coords = getClickCoords(e);
-    switch(drawingMode){
+    switch(settings.drawingMode){
       case 'line':
         //changing line position
         if(lineData.begun){
@@ -575,7 +547,7 @@ function App() {
             return;
           }
           const tempCanvas = bufferCanvas;
-          const start = {x:lineData.startIndex%canvasDimensions.width,y:Math.trunc(lineData.startIndex/canvasDimensions.width)};          
+          const start = {x:lineData.startIndex%asciiCanvas.width,y:Math.trunc(lineData.startIndex/asciiCanvas.width)};          
           const line = {
             begun : true,
             moved : true,
@@ -584,13 +556,13 @@ function App() {
             char : currentChar
           };
           setLineData(line);
-          setDivContents(drawLine(start,coords,currentChar,tempCanvas));
+          setAsciiCanvas({...asciiCanvasRef.current,data:drawLine(start,coords,currentChar,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:tempCanvas})});
         }
         break;
       case 'brush':
         if(brushData.drawing){
           let brushSize = brushData.brushSize;
-          if(brushData.lastCoordinate !== undefined && useDynamicBrush){
+          if(brushData.lastCoordinate !== undefined && settingsRef.current.useDynamicBrush){
             const distX = brushData.lastCoordinate.x - coords.x;
             const distY = brushData.lastCoordinate.y - coords.y;
             //usually, dist is between 1 and 2
@@ -600,10 +572,10 @@ function App() {
           }
           //if there's no other coordinate, just fill circles
           if(brushData.lastCoordinate === undefined){
-            setDivContents(fillCircle(coords.x,coords.y,brushSize,currentChar,divContents,canvasDimensions));
+            setAsciiCanvas({...asciiCanvasRef.current,data:fillCircle(coords.x,coords.y,brushSize,currentChar,asciiCanvasRef.current)});
           }
           else{
-            setDivContents(drawCirclesAlongPath({x:brushData.lastCoordinate.x,y:brushData.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize,currentChar,divContents,canvasDimensions));
+            setAsciiCanvas({...asciiCanvasRef.current,data:drawCirclesAlongPath({x:brushData.lastCoordinate.x,y:brushData.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize,currentChar,asciiCanvas)});
           }
           setBrushData({
             drawing:true,
@@ -662,18 +634,18 @@ function App() {
           moveBy : moveBy
       };
       setSelectionBox(newBox);
-      setDivContents(shiftArea(newBox,newBox.moveBy,bufferCanvas,canvDims.width,true));
+      setAsciiCanvas({...asciiCanvasRef.current,data:shiftArea(newBox,newBox.moveBy,bufferCanvasRef.current,asciiCanvasRef.current.width,true)});
     }
   }
 
-  function writeCharacter(index,char,data){
-    return data.substring(0,index)+char+data.substring(index+1);
+  function writeCharacter(index,char,canvas){
+    return canvas.data.substring(0,index)+char+canvas.data.substring(index+1);
   }
-  function writeCharacterXY(x,y,char,data,canvDims){
+  function writeCharacterXY(x,y,char,canvas){
     //check bounds
-    if((x < 0) || (x >= canvDims.width) || (y < 0) || (y >= canvDims.height))
-      return data;
-    return writeCharacter(x+y*canvDims.width,char,data);
+    if((x < 0) || (x >= canvas.width) || (y < 0) || (y >= canvas.height))
+      return canvas.data;
+    return writeCharacter(x+y*canvas.width,char,canvas);
   }
   function drawCircle(x0, y0, r, c, data, dims) {
     let f = 1 - r;
@@ -709,8 +681,7 @@ function App() {
     return data;
   }
 
-  function fillCircleHelper(x0, y0, r, corners, delta, c, data, dims) {
-    
+  function fillCircleHelper(x0, y0, r, corners, delta, c, canvas) {
     let f = 1 - r;
     let ddF_x = 1;
     let ddF_y = -2 * r;
@@ -734,37 +705,36 @@ function App() {
       // for the SSD1306 library which has an INVERT drawing mode.
       if (x < (y + 1)) {
         if (corners & 1)
-          data = drawFastVLine(x0 + x, y0 - y, 2 * y + delta, c, data, dims);
+          canvas.data = drawFastVLine(x0 + x, y0 - y, 2 * y + delta, c, canvas);
         if (corners & 2)
-          data = drawFastVLine(x0 - x, y0 - y, 2 * y + delta, c, data, dims);
+          canvas.data = drawFastVLine(x0 - x, y0 - y, 2 * y + delta, c, canvas);
       }
       if (y != py) {
         if (corners & 1)
-          data = drawFastVLine(x0 + py, y0 - px, 2 * px + delta, c, data, dims);
+          canvas.data = drawFastVLine(x0 + py, y0 - px, 2 * px + delta, c, canvas);
         if (corners & 2)
-          data = drawFastVLine(x0 - py, y0 - px, 2 * px + delta, c, data, dims);
+          canvas.data = drawFastVLine(x0 - py, y0 - px, 2 * px + delta, c, canvas);
         py = y;
       }
       px = x;
     }
-    return data;
+    return canvas.data;
   }
 
-  function drawFastVLine(x,y,height,c,data,dims){
+  function drawFastVLine(x,y,height,c,canvas){
     for(let i = 0; i<height; i++){
-      data = writeCharacterXY(x,y+i,c,data,dims);
+      canvas.data = writeCharacterXY(x,y+i,c,canvas);
     }
-    return data;
+    return canvas.data;
   }
 
-  function fillCircle(x0,y0,r,c,data,dims){
-    data = drawFastVLine(x0, y0 - r, 2 * r + 1, c, data, dims);
-    data = fillCircleHelper(x0, y0, r, 3, 0, c, data, dims);
-    return data;
+  function fillCircle(x0,y0,r,c,canvas){
+    canvas.data = drawFastVLine(x0, y0 - r, 2 * r + 1, c, canvas);
+    canvas.data = fillCircleHelper(x0, y0, r, 3, 0, c, canvas);
+    return canvas.data;
   }
 
   function drawLine(start,end,char,canvas){
-    const canvDims = canvasDimensionsRef.current;
     const steep = Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
     if (steep) {
       [start.x, start.y] = [start.y,start.x];
@@ -791,9 +761,9 @@ function App() {
     let y = start.y;
     for (let x = start.x; x <= end.x; x++) {
       if (steep) {
-        canvas = writeCharacter(x*canvDims.width+y, char, canvas);
+        canvas.data = writeCharacter(x*canvas.width+y, char, canvas);
       } else {
-        canvas = writeCharacter(y*canvDims.width+x, char, canvas);
+        canvas.data = writeCharacter(y*canvas.width+x, char, canvas);
       }
       err -= dy;
       if (err < 0) {
@@ -801,58 +771,59 @@ function App() {
         err += dx;
       }
     }
-    return canvas;
+    return canvas.data;
   }
 
   function shiftCharacters(index,amount,data){
     let insertStr = '';
-    const rowStartIndex = Math.trunc(index/canvasDimensions.width)*(canvasDimensions.width);
-    const moveAmt = Math.min(amount<0?(canvasDimensions.width - index%canvasDimensions.width):(canvasDimensions.width - (index%canvasDimensions.width)),Math.abs(amount));
+    const rowStartIndex = Math.trunc(index/asciiCanvasRef.current.width)*(asciiCanvasRef.current.width);
+    const moveAmt = Math.min(amount<0?(asciiCanvasRef.current.width - index%asciiCanvasRef.current.width):(asciiCanvasRef.current.width - (index%asciiCanvasRef.current.width)),Math.abs(amount));
     for(let i = 0; i<moveAmt; i++){
       insertStr += ' ';
     }
     if(amount<0)
-      setDivContents(data.substring(0,index)+data.substring(index+moveAmt,rowStartIndex+canvasDimensions.width)+insertStr+data.substring(rowStartIndex+canvasDimensions.width));
+      setAsciiCanvas({...asciiCanvasRef.current,data:data.substring(0,index)+data.substring(index+moveAmt,rowStartIndex+asciiCanvasRef.current.width)+insertStr+data.substring(rowStartIndex+asciiCanvasRef.current.width)});
     else
-      setDivContents(data.substring(0,index)+insertStr+data.substring(index,rowStartIndex+canvasDimensions.width-moveAmt)+data.substring(rowStartIndex+canvasDimensions.width));
+      setAsciiCanvas({...asciiCanvasRef.current,data:data.substring(0,index)+insertStr+data.substring(index,rowStartIndex+asciiCanvasRef.current.width-moveAmt)+data.substring(rowStartIndex+asciiCanvasRef.current.width)});
   }
+
   function newLine(index,amount,data){
-    const rowStartIndex = Math.trunc(index/canvasDimensions.width)*(canvasDimensions.width);
+    const rowStartIndex = Math.trunc(index/asciiCanvasRef.current.width)*(asciiCanvasRef.current.width);
     let insertStr = '';
-    for(let i = 0; i<canvasDimensions.width; i++){
+    for(let i = 0; i<asciiCanvasRef.current.width; i++){
       insertStr += ' ';
     }
-    const moveAmt = Math.min(amount>0?canvasDimensions.height:(rowStartIndex/canvasDimensions.width),Math.abs(amount))
+    const moveAmt = Math.min(amount>0?asciiCanvasRef.current.height:(rowStartIndex/asciiCanvasRef.current.width),Math.abs(amount))
     if(amount>0){
       for(let i = 0; i<moveAmt; i++){
-        setDivContents(data.substring(0,rowStartIndex)+insertStr+data.substring(rowStartIndex,data.length-canvasDimensions.width*moveAmt));
+        setAsciiCanvas({...asciiCanvasRef.current,data:data.substring(0,rowStartIndex)+insertStr+data.substring(rowStartIndex,data.length-asciiCanvasRef.current.width*moveAmt)});
       }
     }
     else{
       for(let i = 0; i<moveAmt; i++){
-        setDivContents(data.substring(0,rowStartIndex)+data.substring(rowStartIndex+canvasDimensions.width*moveAmt)+insertStr);
+        setAsciiCanvas({...asciiCanvasRef.current,data:data.substring(0,rowStartIndex)+data.substring(rowStartIndex+asciiCanvasRef.current.width*moveAmt)+insertStr});
       }
     }
   }
 
   function moveColumn(index,amount,data){
-    const rowIndex = Math.trunc(index/canvasDimensions.width);
-    const colIndex = index % canvasDimensions.width;
+    const rowIndex = Math.trunc(index/asciiCanvas.width);
+    const colIndex = index % asciiCanvas.width;
     if(amount>0){
-      for(let i = (canvasDimensions.height); i>rowIndex; i--){
-        data = writeCharacter(i*canvasDimensions.width+colIndex,data.charAt((i-1)*canvasDimensions.width+colIndex),data);
+      for(let i = (asciiCanvas.height); i>rowIndex; i--){
+        data = writeCharacter(i*asciiCanvas.width+colIndex,data.charAt((i-1)*asciiCanvas.width+colIndex),data);
       }
-      data = writeCharacter(rowIndex*canvasDimensions.width+colIndex,' ');
+      data = writeCharacter(rowIndex*asciiCanvas.width+colIndex,' ');
     }
     else{
-      for(let i = rowIndex; i<(canvasDimensions.height-1); i++){
-        data = writeCharacter(i*canvasDimensions.width+colIndex,data.charAt((i+1)*canvasDimensions.width+colIndex),data);
+      for(let i = rowIndex; i<(asciiCanvas.height-1); i++){
+        data = writeCharacter(i*asciiCanvas.width+colIndex,data.charAt((i+1)*asciiCanvas.width+colIndex),data);
       }
     }
-    setDivContents(data);
+    setAsciiCanvas({...asciiCanvasRef.current,data:data});
   }
   //draws circles along a path!
-  function drawCirclesAlongPath(A,B,radius,character,data,dimensions){
+  function drawCirclesAlongPath(A,B,radius,character,canvas){
     let start;
     let end;
     if(A.x<B.x){
@@ -875,7 +846,7 @@ function App() {
     // radius = 0;
     //if radius is 0, just draw a line
     if(radius == 0){
-      return drawLine({x:start.x,y:start.y},{x:end.x,y:end.y},character,data);
+      return drawLine({x:start.x,y:start.y},{x:end.x,y:end.y},character,canvas);
     }
 
     //if it's a vertical line, don't use the line slope
@@ -883,18 +854,18 @@ function App() {
       for(let step = start.y; step<end.y; step+=(radius/2)){
         const x = start.x;
         const y = Math.trunc(step);
-        data = fillCircle(x,y,radius,character,data,dimensions);
+        canvas.data = fillCircle(x,y,radius,character,canvas);
       }
-      return data;
+      return canvas.data;
     }
     //if it's a horizontal line
     else if(start.y == end.y){
       for(let step = start.x; step<end.x; step+=(radius/2)){
         const x = Math.trunc(step);
         const y = start.y;
-        data = fillCircle(x,y,radius,character,data,dimensions);
+        canvas.data = fillCircle(x,y,radius,character,canvas);
       }
-      return data;
+      return canvas.data;
     }
     //if it's not a straight line, use y = mx+b
     else{
@@ -908,9 +879,9 @@ function App() {
         const t = step/stepCount;
         const x = Math.trunc((1-t)*start.x + t*end.x);
         const y = Math.trunc((1-t)*start.y + t*end.y);
-        data = fillCircle(x,y,radius,character,data,dimensions);
+        canvas.data = fillCircle(x,y,radius,character,canvas);
       }
-      return data;
+      return canvas.data;
     }
   }
   function fillArea(start,end,data,dims,char){
@@ -931,8 +902,8 @@ function App() {
     return data;
   }
 
-  function copyArea(startCoord,endCoord,data,dataWidth){
-    let tempData = data;
+  function copyArea(startCoord,endCoord,canvas){
+    let tempData = canvas.data;
     let topL = {x:Math.min(startCoord.x,endCoord.x),y:Math.min(startCoord.y,endCoord.y)};
     let bottomR = {x:Math.max(startCoord.x,endCoord.x),y:Math.max(startCoord.y,endCoord.y)};
     let width = bottomR.x - topL.x;
@@ -941,10 +912,10 @@ function App() {
 
     //for each row containing the cut, grab the part before, blank, and the part after
     for(let y = topL.y;y<bottomR.y;y++){
-      const rowStart = dataWidth*y;
+      const rowStart = canvas.width*y;
       const cutStart = rowStart+topL.x;
       const cutEnd = cutStart+width;
-      const rowEnd = rowStart+dataWidth;
+      const rowEnd = rowStart+canvas.width;
       copyStr += tempData.substring(cutStart,cutEnd);
     };
     //grab the rest of it
@@ -984,7 +955,7 @@ function App() {
   }
   function paste(clipData,data,coords,dataWidth){
     let newData = '';
-    const blend = blendTransparentAreasRef.current;
+    const blend = settingsRef.current.blendTransparentAreas;
     //grab up until first row
     newData = data.substring(0,dataWidth*coords.y);
     for(let y = 0; y<clipData.height; y++){
@@ -1060,14 +1031,14 @@ function App() {
   function move(selection,direction,bufCanvas,canvDims){
     if((selection.started || selection.finished) && checkMove(selection,direction,canvDims)){
       const newCanv = shiftArea(selection,{x:selection.moveBy.x+direction.x,y:selection.moveBy.y+direction.y},bufCanvas,canvDims.width,true);
-      setDivContents(newCanv);
+      setAsciiCanvas({...asciiCanvasRef.current,data:newCanv});
       setSelectionBox(
-        {
-          startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
-          endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
-          started : selection.started,
-          finished : selection.finished,
-          movingText : selection.movingText,
+        {...selection,
+          // startCoord:{x:selection.startCoord.x,y:selection.startCoord.y},
+          // endCoord:{x:selection.endCoord.x,y:selection.endCoord.y},
+          // started : selection.started,
+          // finished : selection.finished,
+          // movingText : selection.movingText,
           moveBy : {x:selection.moveBy.x+direction.x,y:selection.moveBy.y+direction.y}
         }
       );
@@ -1078,13 +1049,13 @@ function App() {
 
   function clearCanvas(){
     let canvasData=``;
-    canvasData = canvasData.padStart(canvasDimensionsRef.current.height*canvasDimensionsRef.current.width,' ');
-    setDivContents(canvasData);
+    canvasData = canvasData.padStart(asciiCanvasRef.current.height*asciiCanvasRef.current.width,' ');
+    setAsciiCanvas({...asciiCanvasRef.current,data:canvasData});
   }
 
   function handleKeyPress(e){
 
-    if(textSelectable)
+    if(settingsRef.textSelectable)
       return;
 
     //stop the event from bubbling, so this is only called once
@@ -1105,44 +1076,50 @@ function App() {
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
     const activeChar = currentCharRef.current;
-    let textData = divContentsRef.current;
+    let textData = asciiCanvasRef.current.data;
     const line = lineDataRef.current;
     const bufCanvas = bufferCanvasRef.current;
     const selection = selectionBoxRef.current;
-    const canvDims = canvasDimensionsRef.current;
+    const canvDims = asciiCanvasRef.current;
     const canvDimSliders = canvasDimensionSlidersRef.current;
-    const advanceOnPress = advanceWhenCharacterEnteredRef.current;
+    const advanceOnPress = settingsRef.current.advanceWhenCharacterEntered;
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
       if(e.key == 'x'){
         if(e.metaKey){
+          pushUndoState();
           cutText(textData,canvDims);
           return;
         }
       }
       if(e.key == 'z'){
         if(e.metaKey){
-          undo();
+          if(e.shiftKey)
+            redo();
+          else
+            undo();
           return;
         }
       }
       else if(e.key == 'c'){
         //copy text to clipboard
         if(e.metaKey){
-          copyText(textData,canvDims);
+          copyText(asciiCanvasRef.current);
           return;
         }
       }
       //if ctrl v, and if there's something on the clipboard
       else if(e.key == 'v'){
         if(e.metaKey){
+          pushUndoState();
           pasteClipboardContents();
           return;
         }
       }
       //clear all with ctr+slash, ctrl+backspace is handled in backspace handler
       else if((e.key == '/' || e.key == '\\')&&e.metaKey){
+        pushUndoState();
         clearCanvas();
         return;
       }
@@ -1165,16 +1142,17 @@ function App() {
       }
       //if you're not drawing a line, set the active char
       if(!line.begun){
+        pushUndoState();
         //if selbox, fill the area
         if(selection.started || selection.finished){
           let newData = cutAreaAndFill(selection.startCoord,selection.endCoord,textData,canvDims.width,e.key);
-          setDivContents(newData.data);
+          setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
           setCurrentChar(e.key);
           return;
         }
         //write the character
-        setDivContents(writeCharacter(index,e.key,textData));
-        if(advanceWhenCharacterEnteredRef.current && index < (canvDims.width*canvDims.height-1)){
+        setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,e.key,asciiCanvasRef.current)});
+        if(settingsRef.current.advanceWhenCharacterEntered && index < (canvDims.width*canvDims.height-1)){
           setActiveCharIndex(index+1);
         }
       }
@@ -1191,17 +1169,18 @@ function App() {
           char : e.key
         };
         setLineData(newL);
-        setDivContents(drawLine(startCoords,endCoords,e.key,tempCanvas));
+        setAsciiCanvas({...asciiCanvasRef.current,data:drawLine(startCoords,endCoords,e.key,tempCanvas)});
       }
       setCurrentChar(e.key);
     }
     else if(e.key === 'Backspace'){
+      pushUndoState();
       if(e.metaKey){
         clearCanvas();
         return;
       }
-      setDivContents(writeCharacter(index,' ',textData));
-      if(advanceWhenCharacterEnteredRef.current && index > 0){
+      setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,' ',textData)});
+      if(settingsRef.current.advanceWhenCharacterEntered && index > 0){
         setActiveCharIndex(index-1);
       }
     }
@@ -1251,7 +1230,7 @@ function App() {
     }
     else if(e.key == 'Enter'){
       if((canvDimSliders.width != canvDims.width) || (canvDimSliders.height != canvDims.height)){
-        setDivContents(resizeCanvas({width:canvDimSliders.width,height:canvDimSliders.height},textData));
+        setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:canvDimSliders.width,height:canvDimSliders.height}),width:canvDimSliders.width,height:canvDimSliders.height});
       }
       else{
         if(e.shiftKey)
@@ -1263,18 +1242,12 @@ function App() {
   }
 
   //adds in \n characters at the end of each line
-  function addLineBreaksToText(data,dimensions){
+  function addLineBreaksToText(canvas){
     let finalString = '';
-    for(let row = 0; row<dimensions.height; row++){
-      finalString += data.substring(row*dimensions.width,(row+1)*dimensions.width)+'\n';
+    for(let row = 0; row<canvas.height; row++){
+      finalString += canvas.data.substring(row*canvas.width,(row+1)*canvas.width)+'\n';
     }
     return finalString;
-  }
-
-  const keyboardShortcutStyle = {
-    // marginLeft:'40px',
-    fontFamily:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    color:"#ffee00ff"
   }
 
   const asciiDisplayStyle = {
@@ -1313,85 +1286,6 @@ function App() {
     backgroundColor:'#0000ffff',
     color:'#ff66bfff',
   }
-
-  const ascii_rose = <div className = "ascii_graphics" style = {{fontSize:'6px',margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>{` ._-\\                           +....                                                 
- \\   \\\\                          .   \\.                         __,^._________________
-/_| \\=  .                        \\.   )                       ,............ ....._=-^ 
-+{ #.  =..\\_                      .    .                ,.......          |/          
-/_#^ /  \\........_                .   : \"           ,^....                            
-  _.  _-)   ---- ......_______    \\..  /         ,....                                
-  /__/ /            /..........\\___\\..y _,^........\`                                  
- ^   |/          .+     .  , \\.............------/                                    
-               ._     _/         ,                                                    
-              ,x..._;^                                                                `}</div>
-  const ascii_rocket = <div className = "ascii_graphics" style = {{fontSize:'6px',margin:'auto',paddingTop:'20px',color:'#ff00ff'}}>
-{`                                 /--/+---------      .    ..                          
-                                |  | ........ /    \`\`\`..........                      
-        ________________________/_/ .._....._/___\`_\`...\`\` \`\`\`....\`\` \`\`                
- __--^^^  \\             _______                    \\ \`\`\`\`\`\`\`\`  \`\`\`\`\`\`     \`\`\`\`\`\`\`\`\`\`  
-<.........|..       ... )**====). __   __  __ - ---|  \`\`        \`              .......
- ^^--;;;../ ..... .... /**====/...\\          \\-----/         ..... ............  ..   
-         \`\`^^^\`\`\`\`\`^^^^\`\`\`\`\`\`\`\`^^T^\\__________\\^^\`^ \`\` ............  ....             
-                                \\--.-------       \`\`\`\`\`\`\`\`\`\`   \`\`                     
-                                                     \`\`  \`\`                           
-`}</div>
-
-  const aboutText = (
-    <>
-    {ascii_rose}
-    +---------------------------------------------------------------------+
-    <div style = {{marginLeft:'10px',marginTop:'10px'}}>
-    This is a sketchbook designed for experimenting with monospace text. I use it for drawing and for writing. The sketchbook is raw HTML text which can be copied or pasted into from other sources.
-    </div>
-    <br></br>
-    +---------------------------------------------------------------------+
-    {ascii_rocket}
-    <br></br>
-    <div style = {{marginLeft:"10px"}}>
-    <span style = {keyboardShortcutStyle}>the basics</span><br></br>
-    Typing text enters it into the canvas at the cursor location. The cursor can be moved by clicking, the arrow keys, or by typing if 'advance cursor when typing' is ticked.
-    <br></br><br></br>
-    Shift clicking+dragging will create a selection box, which can be cut, copied, moved with the arrow keys, or dragged with the mouse. By default, whitespaces will be treated as "transparent" when moving or pasting text, but can be preserved by unticking "blend transparent areas."
-    </div>
-    <br></br>
-    <div style = {{marginLeft:"10px"}}>
-    <span style = {keyboardShortcutStyle}>drawing</span><br></br>
-    </div>
-    <div style = {{marginLeft:"40px"}}>
-    The character drawn is the last character pressed, show in the top left display box.<br></br><br></br>
-    <span style = {keyboardShortcutStyle}>Brush</span> ~ draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic brush' to draw lines that resize thickness based on mouse speed.<br></br>
-    <span style = {keyboardShortcutStyle}>Lines</span> ~ draw straight lines by dragging the mouse.<br></br>
-    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.<span style = {keyboardShortcutStyle}> Uploading or changing image settings will always overwrite the current canvas! </span><br></br>
-    </div>
-    +---------------------------------------------------------------------+
-    <br></br>
-    <div style = {{marginLeft:"10px"}}>
-    <span style = {keyboardShortcutStyle}>shortcuts</span><br></br>
-    </div>    <div style = {{marginLeft:"40px"}}>
-    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....select all<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....undo<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+X</span>.....cut selected area<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+C</span>.....copy selected area<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+V</span>.....paste clipboard<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+Backspace or /</span>...clear Canvas<br></br>
-    <span style = {keyboardShortcutStyle}>Backspace</span>...delete character<br></br>
-    <span style = {keyboardShortcutStyle}>Arrow keys</span>...move cursor or translate selected text<br></br>
-    <span style = {keyboardShortcutStyle}>Arrow keys + Shift</span>...translate row/column<br></br>
-    <span style = {keyboardShortcutStyle}>Enter</span>...move cursor down a line<br></br>
-    <span style = {keyboardShortcutStyle}>Enter+Shift</span>...insert blank line<br></br>
-    </div>
-    {/* Understanding technology as a physical, human, inherently political resource--as opposed to the neutral, fingerprint-less identity most tech companies portray it as--limits our ability to conceptualize the labor, violence, and natural resources that go into producing, maintaining, and integrating ourselves with technology. */}
-    <br></br>
-    {/* Missile guidance systems are written with the same alphabet, the same text encoding, and stored in the same ascii format as what you create on this page. Abstracting technology from its physical reality is a strategy for depersonifying the people targeted by it, and alleviating the consequences for those who develop it. */}
-    {/* <br></br> */}
-    {/* {ascii_rose}                                                      */}
-
-    <br></br>
-    <span style = {{marginLeft:'10px'}}>
-    made by <a style = {{color:"#ffee00ff"}}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
-    </span>
-    </>
-  )
   
   const highlightColor = '#ff0000ff';
   const aboutTextStyle = {
@@ -1413,13 +1307,13 @@ function App() {
 
   const selectionBoxStyle = {
     width:String(Math.abs(selectionBox.startCoord.x - selectionBox.endCoord.x))+'ch',
-    height:String(Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*lineHeight)+'em',
+    height:String(Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*settings.lineHeight)+'em',
     left:(Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x) + 'ch',
-    top:String((Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y)*lineHeight) + 'em',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
-    fontSize:fontSize+'px',
-    borderColor:textColor,
+    top:String((Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y)*settings.lineHeight) + 'em',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
+    fontSize:settings.fontSize+'px',
+    borderColor:settings.textColor,
     zIndex:'0',
     position:'absolute',
     borderStyle:'dashed',
@@ -1430,13 +1324,13 @@ function App() {
 
   const resizePreviewStyle = {
     width:String(canvasDimensionSliders.width)+'ch',
-    height:String((canvasDimensionSliders.height)*lineHeight)+'em',
+    height:String((canvasDimensionSliders.height)*settings.lineHeight)+'em',
     left:'0',
     top:'0',
     // borderColor:textColor,
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
-    fontSize:fontSize+'px',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
+    fontSize:settings.fontSize+'px',
     zIndex:0,
     position:'absolute',
     borderStyle:'dashed',
@@ -1447,13 +1341,13 @@ function App() {
 
   const highlightBoxStyle = {
     width:'1ch',
-    height: lineHeight+'em',
+    height: settings.lineHeight+'em',
 
-    left: String(activeCharIndex%canvasDimensions.width) + 'ch',
-    top: String(Math.trunc(activeCharIndex/canvasDimensions.width)*lineHeight)+'em',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
-    fontSize:fontSize+'px',
+    left: String(activeCharIndex%asciiCanvas.width) + 'ch',
+    top: String(Math.trunc(activeCharIndex/asciiCanvas.width)*settings.lineHeight)+'em',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
+    fontSize:settings.fontSize+'px',
     position:'absolute',
     animation: 'blinkBackground 0.5s infinite'
   };
@@ -1461,8 +1355,8 @@ function App() {
   const canvasContainerStyle = {
     width:'fit-content',
     height:'fit-content',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
     marginTop: '120px',
     position:'relative',
     whiteSpace: 'pre',
@@ -1470,40 +1364,43 @@ function App() {
   }
 
   const canvasStyle = {
-    userSelect : textSelectable?'text':'none',
+    userSelect : settings.textSelectable?'text':'none',
 
-    cursor:textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
+    cursor:settings.textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
 
-    fontSize:fontSize+'px',
-    color:textColor,
+    fontSize:settings.fontSize+'px',
+    color:settings.textColor,
     backgroundColor:'transparent',
     width:'fit-content',
-    // width: canvasDimensions.width+'ch',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
+    // width: asciiCanvas.width+'ch',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
   }
 
   const brushPreviewStyle = {
     width:(brushData.brushSize*2)+'ch',
     whiteSpace:'pre',
-    fontSize:fontSize+'px',
-    color:textColor,
+    fontSize:settings.fontSize+'px',
+    color:settings.textColor,
     backgroundColor:'transparent',
-    lineHeight:lineHeight,
-    letterSpacing:textSpacing+'px',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
     marginLeft:'20px',
     direction: 'rtl'
   }
 
   const backgroundStyle = {
     color:'#000000',
-    backgroundColor:backgroundColor,
-    top:'-'+String(lineHeight)+'em',
-    fontSize:fontSize+'px',
-    width: canvasDimensions.width+2+'ch'
+    backgroundColor:settings.backgroundColor,
+    top:'-'+String(settings.lineHeight)+'em',
+    fontSize:settings.fontSize+'px',
+    width: asciiCanvas.width+2+'ch'
   };
 
-  const loadImage = (file) => {
+  const loadImage = (files) => {
+    if(files.length === 1)
+      files = [files[0]];
+    const file = files[0];
     //make sure there's a file here
     if(!(file === undefined)){
       //create a file reader object
@@ -1524,32 +1421,33 @@ function App() {
       return canv;
     }
     else{
-      let canv = createBackground({width:size*2+1,height:size*2+1});
-      canv = fillCircle(size+1,size+1,size,currentChar,canv,{width:size*2+3,height:size*2+3});
+      const dims = {width:size*2+1,height:size*2+1};
+      let canv = {data:createBackground(dims),width:size*2+3,height:size*2+3};
+      canv = fillCircle(size+1,size+1,size,currentChar,canv);
       return canv;
     }
   }
 
 
-  function pasteText(clipText,clipTextDims,coords,data,dimensions){
+  function pasteText(clipText,clipTextDims,coords,canvas){
     let newData = '';
     //grab up until first row
-    newData = data.substring(0,dimensions.width*coords.y);
+    newData = canvas.data.substring(0,canvas.width*coords.y);
     for(let y = 0; y<clipTextDims.height; y++){
-      const rowStart = dimensions.width*(coords.y+y);
-      const rowEnd = rowStart+dimensions.width;
+      const rowStart = canvas.width*(coords.y+y);
+      const rowEnd = rowStart+canvas.width;
       const pasteStart = rowStart+coords.x;
       const pasteEnd = Math.min(pasteStart+clipTextDims.width,rowEnd);
       //get a row from the clipboard
-      let pasteRow = clipText.substring(y*clipTextDims.width,(y+1)*clipTextDims.width,dimensions.width+y*clipTextDims.width);
+      let pasteRow = clipText.substring(y*clipTextDims.width,(y+1)*clipTextDims.width,canvas.width+y*clipTextDims.width);
       
       //overlaying blank characters, like they're transparent
-      if(blendTransparentAreasRef.current){
+      if(settingsRef.current.blendTransparentAreas){
         let tempRow = '';
         for(let i = 0; i<pasteRow.length; i++){
           //if it's a blank character, grab the character from the underlying canvas
           if(pasteRow.charAt(i) === ' '){
-            tempRow += data.charAt(pasteStart+i);
+            tempRow += canvas.data.charAt(pasteStart+i);
           }
           else{
             tempRow+=pasteRow.charAt(i);
@@ -1559,10 +1457,10 @@ function App() {
       }
 
       //grab part that'll fit on the canvas
-      const pasteFinal = pasteRow.substring(0,Math.min(dimensions.width-coords.x,clipTextDims.width+coords.x));
-      newData += data.substring(rowStart,pasteStart)+pasteFinal+data.substring(pasteEnd,rowEnd);
+      const pasteFinal = pasteRow.substring(0,Math.min(canvas.width-coords.x,clipTextDims.width+coords.x));
+      newData += canvas.data.substring(rowStart,pasteStart)+pasteFinal+canvas.data.substring(pasteEnd,rowEnd);
     }
-    newData += data.substring(dimensions.width*(coords.y+clipTextDims.height));
+    newData += canvas.data.substring(canvas.width*(coords.y+clipTextDims.height));
     return newData;
   }
 
@@ -1583,8 +1481,8 @@ function App() {
           let text = await blob.text();
           const clipDims = clipboardDimensionsRef.current;
           const selBox = selectionBoxRef.current;
-          const canvDims = canvasDimensionsRef.current;
-          const canvasText = divContentsRef.current;
+          const canvDims = asciiCanvasRef.current;
+          const canvasText = asciiCanvasRef.current.data;
           const activeChar = activeCharIndexRef.current;
           let dimensions;
           //if the user has already stored data in the clipboard from sketchbook, it'll have dimensions with it
@@ -1615,7 +1513,7 @@ function App() {
             dimensions = {width:width,height:lines.length};
           }
           const coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
-          setDivContents(pasteText(text,dimensions,coords,canvasText,canvDims));
+          setAsciiCanvas({...asciiCanvasRef.current,data:pasteText(text,dimensions,coords,asciiCanvasRef.current)});
         }
       }
     }
@@ -1625,33 +1523,79 @@ function App() {
 
   }
 
+  function loadPreset(title){
+    const newPreset = presets.find((element) => element.title === title);
+    setAsciiCanvas({...asciiCanvasRef.current,data:newPreset.data,height:newPreset.height,width:newPreset.width});
+    setCanvasDimensionSliders({height:newPreset.height,width:newPreset.width});
+  }
+
+  const AsciiBox = ({width,height,children}) => {
+    const asciiBoxStyle = {
+      whiteSpace: 'pre',
+      fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      fontSize: '10px',
+      position:'absolute',
+      display:'block',
+      textWrap:'',
+      overflowWrap: 'break-word',
+      left:'-1ch',
+      top:'-1em',
+      width:`${width+2}ch`
+    }
+    const cornerCharacter = '*';
+    let topStr = '';
+    topStr = cornerCharacter + topStr.padEnd(width+1,'-') + cornerCharacter;
+
+    let sideStr = '|';
+    sideStr = sideStr.padEnd(width+1,' ');
+    // sideStr += '|';
+
+    let mainStr = topStr;
+    for(let i = 0; i < height; i++){
+      mainStr += sideStr;
+    }
+    mainStr+=topStr;
+
+    return(
+      <div style = {asciiBoxStyle}>
+        {mainStr}
+        {Children.map(children, child =>
+            {child}
+        )}
+      </div>
+    )
+  }
+
   if(imageRenderer.imageLoaded && imageRenderer.needToReload){
     convertImageToAscii(imageRenderer.imageSrc);
   }
 
   return (
     <div className = "app_container">
-      {showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
+      {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
       <div style = {titleContainer}>
       <div className = 'title_card' style = {titleStyle} >{'sketchbook'}</div>
-      <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'200px'}} onClick = {(e) => {setShowAbout(!showAbout)}}>{showAbout?'[Xx close xX]':'About'}</div>
+      <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'200px'}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'About'}</div>
       </div>
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
-        {/* <div className = 'help_text'>cursor: (x:{activeCharIndex%canvasDimensions.width} y:{Math.trunc(activeCharIndex/canvasDimensions.width)})</div> */}
-        <div className = 'ascii_button' onClick = {(e) => {setTextSelectable(!textSelectable)}}>selectable text [{textSelectable?'X':' '}]</div>
-        {textSelectable && 
+        {/* <div className = 'help_text'>cursor: (x:{activeCharIndex%asciiCanvas.width} y:{Math.trunc(activeCharIndex/asciiCanvas.width)})</div> */}
+        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}}>selectable text [{settings.textSelectable?'X':' '}]</div>
+        {settings.textSelectable && 
           <div className = 'help_text' style ={{color:'#ff0000'}}>(cmd+a) select all</div>
         }
-        {!textSelectable && <>
-        <div className = 'ascii_button' onClick = {(e) => {setAdvanceWhenCharacterEntered(!advanceWhenCharacterEntered)}}>advance cursor when typing [{advanceWhenCharacterEntered?'X':' '}]</div>
-        <Dropdown label = 'drawing mode' callback = {(val) => {setDrawingMode(val);}} value = {drawingMode} options = {['line','brush']}></Dropdown>
-        {drawingMode == 'brush' &&
+        {!settings.textSelectable && <>
+        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}}>advance cursor when typing [{settings.advanceWhenCharacterEntered?'X':' '}]</div>
+        <div style = {{display:'flex',gap:'10px'}}>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
+        </div>
+        {settings.drawingMode == 'brush' &&
         <>
-          <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setShowBrushPreview(true)} onMouseLeave = {() => setShowBrushPreview(false)}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
-          <div className = 'ascii_button' onClick = {() => {setUseDynamicBrush(!useDynamicBrush)}}>{'dynamic brush ['+(useDynamicBrush?'x':' ')+']'}</div>
+          <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setSettings({...settingsRef.current,showBrushPreview:true})} onMouseLeave = {() => setSettings({...settingsRef.current,showBrushPreview:false})}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
+          <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}>{'dynamic brush ['+(settings.useDynamicBrush?'x':' ')+']'}</div>
         </>
         }
         {!(selectionBox.started || selectionBox.finished) && 
@@ -1666,10 +1610,10 @@ function App() {
         {(selectionBox.started || selectionBox.finished) && 
         <>
         <div className = "ascii_button" style ={{color:'#ff0000'}} onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
-                                                            cutText(textData,canvDims);
+                                                            cutText(asciiCanvasRef.current);
                                                             }}}>cut (cmd+x)</div>
         <div className = "ascii_button" style ={{color:'#ff0000'}} onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
-                                                            copyText(textData,canvDims);
+                                                            copyText(asciiCanvasRef.current);
                                                             }}}>copy (cmd+c)</div>
         </>}
         {/* paste button, when there's something to paste */}
@@ -1679,35 +1623,49 @@ function App() {
                                                           }}>paste (cmd+v)</div>
         }
         {/* overlay white space */}
-        <div className = 'ascii_button' onClick = {() => {setBlendTransparentAreas(!blendTransparentAreas)}}>{'blend transparency ['+(blendTransparentAreas?'X':' ')+']'}</div>
-        <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:val,height:canvasDimensions.height},divContents));setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}}></NumberInput>
-        <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {setDivContents(resizeCanvas({width:canvasDimensions.width,height:val},divContents));setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSliders.width})}}></NumberInput>
-        { (canvasDimensionSliders.width != canvasDimensions.width || canvasDimensionSliders.height != canvasDimensions.height) &&
-          <div className = "ascii_button" onClick = {(e) =>{setDivContents(resizeCanvas({width:canvasDimensionSliders.width,height:canvasDimensionSliders.height},divContents))}} style = {{color:'#0000ff'}}>[enter] apply</div>
+        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}}>{'blend transparency ['+(settings.blendTransparentAreas?'X':' ')+']'}</div>
+        <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {
+          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{height:asciiCanvasRef.current.height,width:val}),width:val});
+          setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSlidersRef.current.height})}}></NumberInput>
+        <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {
+          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:asciiCanvasRef.current.width,height:val}),height:val});
+          setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSlidersRef.current.width})}}></NumberInput>
+        { (canvasDimensionSliders.width != asciiCanvas.width || canvasDimensionSliders.height != asciiCanvas.height) &&
+          <div className = "ascii_button" onClick = {() =>{setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height}),width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height})}} style = {{color:'#0000ff'}}>[enter] apply</div>
         }
-        <Dropdown label = 'page# (previous drawings):' callback = {(val) => {const newPreset = presets.find((element) => element.title === val);setDivContents(newPreset.data);setCanvasDimensions({height:newPreset.height,width:newPreset.width});setCanvasDimensionSliders({height:newPreset.height,width:newPreset.width})}} options = {presets.map((n) => n.title)}></Dropdown>
-        {/* copy text to clipboard*/}
-        <div className = "ascii_button" onClick = {(e) => {copyText(divContents,canvasDimensions)}}>copy drawing to clipboard</div>
+        <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         {/* copy settings */}
-        <div className = "ascii_button" onClick = {(e) => {setCopyTextWithLineBreaks(!copyTextWithLineBreaks);}}>{'  line breaks ['+(copyTextWithLineBreaks?'X]':' ]')}</div>
-        <div className = "ascii_button" onClick = {(e) => {setEscapeTextBeforeCopying(!escapeTextBeforeCopying);}}>{'  escape text ['+(escapeTextBeforeCopying?'X]':' ]')}</div>
+        <div style = {{position:'relative'}}>
+          {/* copy text to clipboard*/}
+          <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current)}}>copy drawing to clipboard</div>
+          <div className = "ascii_button" onClick = {() => {setSettings({...settingsRef.current,copyTextWithLineBreaks:!settingsRef.current.copyTextWithLineBreaks})}}>{'  line breaks ['+(settings.copyTextWithLineBreaks?'X]':' ]')}</div>
+          <div className = "ascii_button" onClick = {() => {setSettings({...settingsRef.current,escapeTextBeforeCopying:!settingsRef.current.escapeTextBeforeCopying})}}>{'  escape text ['+(settings.escapeTextBeforeCopying?'X]':' ]')}</div>
+        </div>
         {/* paste text to canvas from clipboard */}
         <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
         {/* clear canvas */}
         <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear canvas</div>
-        <ColorPicker label = 'background color' backgroundColor = {backgroundColor} textColor = {'#000000'} defaultValue={backgroundColor} callback = {(e) => {setBackgroundColor(e);}}></ColorPicker>
-        <ColorPicker label = 'text color'  textColor = {textColor} backgroundColor = {'transparent'} defaultValue={textColor} callback = {(e) => {setTextColor(e);}}></ColorPicker>
+        <ColorPicker label = 'background color' backgroundColor = {settings.backgroundColor} textColor = {'#000000'} defaultValue={settings.backgroundColor} callback = {(val) => {setSettings({...settingsRef.current,backgroundColor:val})}}></ColorPicker>
+        <ColorPicker label = 'text color'  textColor = {settings.textColor} backgroundColor = {'transparent'} defaultValue={settings.textColor} callback = {(val) => {setSettings({...settingsRef.current,textColor:val})}}></ColorPicker>
         
-        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setFontSize(val)}} defaultValue={fontSize} min = {1} max = {20}></Slider>
-        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setTextSpacing(val)}} defaultValue={textSpacing} min = {-4} max = {4}></Slider>
-        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setLineHeight(val)}} defaultValue={lineHeight} min = {0.1} max = {2}></Slider>
-     
-        <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker>
+        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
+        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-4} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
+        {/* drop zone */}
+        <DropZone title = "Drop images here, or click to upload." callback = {loadImage}></DropZone>
+        {/* <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker> */}
         {imageRenderer.imageLoaded &&
         <>
         <img className = "image_preview" src = {imageRenderer.imageSrc}/>
         <AsciiPaletteInput value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
-        <Dropdown label = 'palette presets:' callback = {(val) => {setAsciiPalettePreset(val);setAsciiPalette(asciiPalettePresets[val]);setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} value={asciiPalettePreset} options = {['full','symbols','letters']}></Dropdown>
+        <div style = {{display:'flex',gap:'10px'}}>
+          <AsciiBox width = "20" height = "10">
+            <div>palette presets:</div>
+            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'full'?'blue':null,color:asciiPalettePreset == 'full'?'white':null}} onClick = {()=>{setAsciiPalettePreset('full');setAsciiPalette(asciiPalettePresets['full']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>full</div>
+            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>symbols</div>
+            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>letters</div>
+          </AsciiBox>
+        </div>
         <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
@@ -1715,9 +1673,9 @@ function App() {
         {/* {ascii_rocket} */}
         </>}
         {/* brush preview */}
-        {showBrushPreview &&  
+        {settings.showBrushPreview &&  
         <div style = {brushPreviewStyle}>
-          {addLineBreaksToText(getBrushCanvas(brushData.brushSize),{width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+          {addLineBreaksToText({data:getBrushCanvas(brushData.brushSize),width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
         </div>
         }
       </div>
@@ -1728,15 +1686,15 @@ function App() {
           <div className = "selection_box" style = {selectionBoxStyle}/>
         }
         {/* canvas resizing preview box */}
-        {(canvasDimensionSliders.width != canvasDimensions.width || canvasDimensionSliders.height != canvasDimensions.height) &&
+        {(canvasDimensionSliders.width != asciiCanvas.width || canvasDimensionSliders.height != asciiCanvas.height) &&
           <div className = "resize_preview_box" style = {resizePreviewStyle}/>
         }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" onMouseMove = {textSelectable?nullHandler:handleMouseMove} onMouseDown = {textSelectable?nullHandler:handleMouseDown} onMouseUp = {textSelectable?nullHandler:handleMouseUp}  style = {canvasStyle}>
-          {addLineBreaksToText(divContents,canvasDimensions)}
+        <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp}  style = {canvasStyle}>
+          {addLineBreaksToText(asciiCanvas)}
         </div>
         <div className = "canvas_background" style = {backgroundStyle}>
-          {addLineBreaksToText(createBackground(canvasDimensions),{width:canvasDimensions.width+2,height:canvasDimensions.height+2})}
+          {addLineBreaksToText({data:createBackground(asciiCanvas),width:asciiCanvas.width+2,height:asciiCanvas.height+2})}
         </div>
       </div>
     </div>
