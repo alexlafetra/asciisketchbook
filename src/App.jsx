@@ -69,6 +69,7 @@ function App() {
     moveBy : {x:0,y:0}
   });
   const [clipboardDimensions,setClipboardDimensions] = useState(undefined);
+  const [clipboardText,setClipboardText] = useState('');
   const [lineData,setLineData] = useState({
     begun : false,
     moved : false,
@@ -102,6 +103,7 @@ function App() {
   const selectionBoxRef = useRef(selectionBox);
   const currentCharRef = useRef(currentChar);
   const imageRendererRef = useRef(imageRenderer);
+  const clipboardTextRef = useRef(clipboardText);
   const clipboardDimensionsRef = useRef(clipboardDimensions);
   const canvasDimensionSlidersRef = useRef(canvasDimensionSliders);
   //making sure the callback can access "fresh" versions of state data
@@ -129,6 +131,9 @@ function App() {
   useEffect(() => {
     imageRendererRef.current = {...imageRenderer};
   },[imageRenderer]);
+  useEffect(() => {
+    clipboardTextRef.current = clipboardText;
+  },[clipboardText]);
   //add keypress event handlers, but only once
   useEffect(() => {
     window.document.addEventListener('keydown', handleKeyPress);
@@ -214,8 +219,9 @@ function App() {
       canvas.width = bottomR.x-topL.x;
       canvas.height = bottomR.y-topL.y;
     }
-    if(settingsRef.current.escapeTextBeforeCopying)
-      canvas.data = escapeTextData(canvas.data);
+    setClipboardText(canvas.data);
+    // if(settingsRef.current.escapeTextBeforeCopying)
+    //   canvas.data = escapeTextData(canvas.data);
     if(settingsRef.current.copyTextWithLineBreaks)
       canvas.data = addLineBreaksToText(canvas);
     setClipboardDimensions(canvas);
@@ -238,6 +244,7 @@ function App() {
     const cutResult = cutAreaAndFill(startCoord,endCoord,data,dimensions.width,' ',false);
     const text = cutResult.data;
     let cut = cutResult.cutData.data;
+    setClipboardText(cut);
     setAsciiCanvas({...asciiCanvasRef.current,data:text});
     setClipboardDimensions({width:cutResult.cutData.width,height:cutResult.cutData.height});
     navigator.clipboard.writeText(cut);
@@ -382,22 +389,32 @@ function App() {
   }
 
   function getClickIndex(e){
-    const coords = getClickCoords(e);
+    const coords = getTruncatedClickCoords(e);
     return coords.x+asciiCanvas.width*coords.y;
   }
-
   function getClickCoords(e){
+    const dims = e.target.getBoundingClientRect();
     const clickCoords = {
-      x:e.pageX - e.target.offsetParent.offsetLeft,
-      y:e.pageY - e.target.offsetParent.offsetTop
+      x:e.clientX - dims.left,
+      y:e.clientY - dims.top
     };
     //px per char
     const characterDims = {
-      width : e.target.clientWidth / asciiCanvas.width,
-      height : e.target.clientHeight / asciiCanvas.height,
+      width : dims.width / asciiCanvasRef.current.width,
+      height : dims.height / asciiCanvasRef.current.height,
     };
 
-    return {x: Math.trunc(clickCoords.x/characterDims.width),y:Math.trunc(clickCoords.y/characterDims.height)};
+    return {x: clickCoords.x/characterDims.width,y:clickCoords.y/characterDims.height};
+  }
+  function getTruncatedClickCoords(e){
+    const coords = getClickCoords(e);
+    return {x:Math.floor(coords.x),y:Math.floor(coords.y)};
+  }
+  function getRoundedClickCoords(e){
+    const coords = getClickCoords(e);
+    return {x:Math.min(Math.round(coords.x),asciiCanvasRef.current.width),y:Math.min(Math.round(coords.y),asciiCanvasRef.current.height)};
+  }
+  function handleMouseLeave(e){
   }
 
   function handleMouseUp(e){
@@ -440,7 +457,7 @@ function App() {
         started : false,
         finished : true,
         startCoord : selectionBox.startCoord,
-        endCoord : getClickCoords(e),
+        endCoord : getRoundedClickCoords(e),
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -452,7 +469,7 @@ function App() {
         started : false,
         finished : false,
         startCoord : selectionBox.startCoord,
-        endCoord : getClickCoords(e),
+        endCoord : getRoundedClickCoords(e),
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -464,7 +481,7 @@ function App() {
     setActiveCharIndex(getClickIndex(e));
     //moving selectionbox
     if(selectionBox.finished){
-      const coords = getClickCoords(e);
+      const coords = getRoundedClickCoords(e);
       const topL = {x:Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x,y:Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y};
       const bottomR = {x:Math.max(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x,y:Math.max(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y};
       if(coords.x < bottomR.x && coords.x > topL.x && coords.y < bottomR.y && coords.y > topL.y){
@@ -493,8 +510,8 @@ function App() {
       const newBox = {
         started : true,
         finished : false,
-        startCoord : getClickCoords(e),
-        endCoord : getClickCoords(e),
+        startCoord : getRoundedClickCoords(e),
+        endCoord : getRoundedClickCoords(e),
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -504,15 +521,14 @@ function App() {
     }
     else{
       const newIndex = getClickIndex(e);
+      const coords = getTruncatedClickCoords(e);
+      pushUndoState();
       switch(settings.drawingMode){
         case 'line':
           //start drawing a line
-          pushUndoState();
           startLine(newIndex);
           break;
         case 'brush':
-          pushUndoState();
-          const coords = getClickCoords(e);
           // don't draw a character yet, until the mouse is moved
           setBrushData({
             drawing:true,
@@ -521,13 +537,16 @@ function App() {
             lastCoordinate:coords
           });
           break;
+        case 'stamp':
+          pasteClipboardContents({x:coords.x-clipboardDimensionsRef.current.width/2,y:coords.y-clipboardDimensionsRef.current.height/2});
+          break;
       }
       //cancel the selection box, if there was one
       const newBox = {
         started : false,
         finished : false,
-        startCoord : getClickCoords(e),
-        endCoord : getClickCoords(e),
+        startCoord : getRoundedClickCoords(e),
+        endCoord : getRoundedClickCoords(e),
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -537,7 +556,7 @@ function App() {
   function handleMouseMove(e){
     const newIndex = getClickIndex(e);
     const canvDims = asciiCanvasRef.current;
-    const coords = getClickCoords(e);
+    const coords = getTruncatedClickCoords(e);
     switch(settings.drawingMode){
       case 'line':
         //changing line position
@@ -561,6 +580,7 @@ function App() {
         break;
       case 'brush':
         if(brushData.drawing){
+          console.log(coords);
           let brushSize = brushData.brushSize;
           if(brushData.lastCoordinate !== undefined && settingsRef.current.useDynamicBrush){
             const distX = brushData.lastCoordinate.x - coords.x;
@@ -595,7 +615,7 @@ function App() {
           started : true,
           finished : false,
           startCoord : selectionBox.startCoord,
-          endCoord : getClickCoords(e),
+          endCoord : getRoundedClickCoords(e),
           movingText : false,
           moveBy : {x:selectionBox.moveBy.x,y:selectionBox.moveBy.y}
         };
@@ -606,7 +626,7 @@ function App() {
           started : false,
           finished : false,
           startCoord : selectionBox.startCoord,
-          endCoord : getClickCoords(e),
+          endCoord : getRoundedClickCoords(e),
           movingText : false,
           moveBy : {x:selectionBox.moveBy.x,y:selectionBox.moveBy.y}
         };
@@ -615,7 +635,7 @@ function App() {
     }
     //moving/shifting area
     else if(selectionBox.movingText){
-      const coords = getClickCoords(e);
+      const coords = getTruncatedClickCoords(e);
       const selBoxDims = {width:Math.abs(selectionBox.endCoord.x-selectionBox.startCoord.x),height:Math.abs(selectionBox.endCoord.y-selectionBox.startCoord.y)};
       
       //no fractional coordinates! adjust coords so the selbox is moved relative to where the mouse was pressed
@@ -1158,7 +1178,6 @@ function App() {
       }
       //if you are drawing a line, redraw it with the new character
       else if(line.moved){
-        const tempCanvas = bufCanvas;
         const startCoords = {x:line.startIndex%canvDims.width,y:Math.trunc(line.startIndex/canvDims.width)};
         const endCoords = {x:line.endIndex%canvDims.width,y:Math.trunc(line.endIndex/canvDims.width)};
         const newL = {
@@ -1168,8 +1187,9 @@ function App() {
           endIndex : line.endIndex,
           char : e.key
         };
+        const tempCanvas  = drawLine(startCoords,endCoords,e.key,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:bufCanvas});
         setLineData(newL);
-        setAsciiCanvas({...asciiCanvasRef.current,data:drawLine(startCoords,endCoords,e.key,tempCanvas)});
+        setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
       }
       setCurrentChar(e.key);
     }
@@ -1428,6 +1448,13 @@ function App() {
     }
   }
 
+  function getStampCanvas(){
+    // console.log(clipboardText,clipboardDimensions);
+    let canv = {...clipboardDimensions,data:createBackground({width:clipboardDimensions.width,height:clipboardDimensions.height})};
+    console.log(canv);
+    return addLineBreaksToText({data:pasteText(clipboardText,clipboardDimensions,{x:1,y:1},canv),width:clipboardDimensions.width+2,height:clipboardDimensions.height+2});
+  }
+
 
   function pasteText(clipText,clipTextDims,coords,canvas){
     let newData = '';
@@ -1466,7 +1493,7 @@ function App() {
 
   //grabs any text, or images, in the users clipboard and puts them onto the canvas
   //https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/read
-  async function pasteClipboardContents(){
+  async function pasteClipboardContents(coords){
     const contents = await navigator.clipboard.read(['text','images'])
     for(const item of contents){
       for(const mimeType of item.types){
@@ -1512,7 +1539,8 @@ function App() {
             //set the dims to the new clipboard bounding rectangle dims
             dimensions = {width:width,height:lines.length};
           }
-          const coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
+          if(!coords)
+            coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
           setAsciiCanvas({...asciiCanvasRef.current,data:pasteText(text,dimensions,coords,asciiCanvasRef.current)});
         }
       }
@@ -1591,11 +1619,25 @@ function App() {
         <div style = {{display:'flex',gap:'10px'}}>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'stamp'?'blue':null,color:settings.drawingMode == 'stamp'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'stamp'})}>stamp</div>
         </div>
+        {settings.drawingMode == 'stamp' &&
+        <>
+          {clipboardText &&
+          <div style = {{...brushPreviewStyle,width:clipboardDimensions.width+2+'ch',height:clipboardDimensions.height+2.5+'em'}}>
+            {getStampCanvas()}
+          </div>
+          }
+          {
+            !clipboardText &&
+            <div style = {{color:'red'}}>copy canvas area to create a stamp</div>
+          }
+        </>
+        }
         {settings.drawingMode == 'brush' &&
         <>
           <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setSettings({...settingsRef.current,showBrushPreview:true})} onMouseLeave = {() => setSettings({...settingsRef.current,showBrushPreview:false})}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
-          <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}>{'dynamic brush ['+(settings.useDynamicBrush?'x':' ')+']'}</div>
+          <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}>{'dynamic ['+(settings.useDynamicBrush?'x':' ')+']'}</div>
         </>
         }
         {!(selectionBox.started || selectionBox.finished) && 
@@ -1690,7 +1732,7 @@ function App() {
           <div className = "resize_preview_box" style = {resizePreviewStyle}/>
         }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp}  style = {canvasStyle}>
+        <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}>
           {addLineBreaksToText(asciiCanvas)}
         </div>
         <div className = "canvas_background" style = {backgroundStyle}>
