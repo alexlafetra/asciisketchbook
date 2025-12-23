@@ -7,7 +7,7 @@ import Dropdown from './components/dropdown';
 import NumberInput from './components/numberinput';
 import AsciiPaletteInput from './components/asciipaletteinput';
 import { ascii_rose,aboutText } from './about';
-import { DropZone } from './components/dropZone';
+import { DropZone } from './components/DropZone';
 import { presets } from './presets';
 
 function App() {
