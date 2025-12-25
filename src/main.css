@@ -5,11 +5,12 @@ html{
 }
 .app_container{
     position:absolute;
-    left:0;
+    left:50px;
     top:0;
     display:grid;
-    grid-template-columns: 300px auto;
-    grid-template-areas: "ui canvas";
+    grid-template-columns: 300px;
+    grid-template-areas: "ui";
+    transition:0.2s;
 }
 .ascii_canvas{
     position:relative;
@@ -52,6 +53,9 @@ html{
 .control_label:hover{
     background-color:#ffff00ff;
 }
+.color_picker{
+    border:none;
+}
 .color_picker .react-colorful{
     width: 10px;
     height: 80px;
@@ -62,12 +66,25 @@ html{
     border-radius:0px;
     border:none;
 }
+.color_picker .react-colorful__saturation {
+    height: 20px;
+    border-radius:0px;
+    border:none;
+}
 /* Custom poiners */
 .color_picker .react-colorful__saturation-pointer {
     width: 15px;
     height: 15px;
     border-radius: 0px;
     border:none;
+    /* border-color:black; */
+}
+.color_picker .react-colorful__hue-pointer {
+    width: 10px;
+    height: 15px;
+    border-radius: 0px;
+    border:none;
+    cursor:pointer;
     /* border-color:black; */
 }
 .slider_container{
@@ -135,11 +152,13 @@ html{
 }
 .number_input_button{
     border-style:none;
-    background-color: transparent;
+    background-color: blue;
+    color:white;
     cursor: pointer;
 }
 .number_input_button:hover{
     background-color:#ffff00ff;
+    color:black;
 }
 .number_input_box{
     user-select: none;

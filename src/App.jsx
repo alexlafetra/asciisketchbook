@@ -4,7 +4,7 @@ import ColorPicker from './components/colorpicker';
 import Slider from './components/slider';
 import './main.css';
 import Dropdown from './components/dropdown';
-import NumberInput from './components/numberinput';
+import NumberInput from './components/NumberInput';
 import AsciiPaletteInput from './components/asciipaletteinput';
 import { ascii_rose,aboutText } from './about';
 import { DropZone } from './components/DropZone';
@@ -49,8 +49,6 @@ function App() {
     drawingMode:'brush',
     showAbout:false,
     showBrushPreview:false,
-    escapeTextBeforeCopying:true,
-    copyTextWithLineBreaks:false,
     blendTransparentAreas:true,
     advanceWhenCharacterEntered:true,
     useDynamicBrush:false
@@ -209,7 +207,7 @@ function App() {
       return imgData;
   }
 
-  function copyText(canvas){
+  function copyText(canvas,options){
     //if there's a selection box, copy from that instead
     const selBox = selectionBoxRef.current;
     if(selBox.finished){
@@ -219,13 +217,14 @@ function App() {
       canvas.width = bottomR.x-topL.x;
       canvas.height = bottomR.y-topL.y;
     }
-    setClipboardText(canvas.data);
-    // if(settingsRef.current.escapeTextBeforeCopying)
-    //   canvas.data = escapeTextData(canvas.data);
-    if(settingsRef.current.copyTextWithLineBreaks)
-      canvas.data = addLineBreaksToText(canvas);
+    let processedText = canvas.data;
+    setClipboardText(processedText);
+    if(options.linebreaks)
+      processedText = addLineBreaksToText({data:processedText,width:canvas.width,height:canvas.height});
+    if(options.escaped)
+      processedText = escapeTextData(processedText);
     setClipboardDimensions(canvas);
-    navigator.clipboard.writeText(canvas.data);
+    navigator.clipboard.writeText(processedText);
   }
 
   function cutText(data,dimensions){
@@ -408,7 +407,7 @@ function App() {
   }
   function getTruncatedClickCoords(e){
     const coords = getClickCoords(e);
-    return {x:Math.floor(coords.x),y:Math.floor(coords.y)};
+    return {x:Math.max(Math.floor(coords.x),0),y:Math.max(Math.floor(coords.y),0)};
   }
   function getRoundedClickCoords(e){
     const coords = getClickCoords(e);
@@ -506,7 +505,7 @@ function App() {
       }
     }
     //starting selectionbox
-    if(e.shiftKey){
+    if(e.shiftKey && !settingsRef.current.textSelectable){
       const newBox = {
         started : true,
         finished : false,
@@ -580,7 +579,6 @@ function App() {
         break;
       case 'brush':
         if(brushData.drawing){
-          console.log(coords);
           let brushSize = brushData.brushSize;
           if(brushData.lastCoordinate !== undefined && settingsRef.current.useDynamicBrush){
             const distX = brushData.lastCoordinate.x - coords.x;
@@ -973,41 +971,6 @@ function App() {
     newStr += tempData.substring((bottomR.y) * dataWidth);
     return {data:newStr,cutData:{data:cutStr,width : width, height: bottomR.y - topL.y}};
   }
-  function paste(clipData,data,coords,dataWidth){
-    let newData = '';
-    const blend = settingsRef.current.blendTransparentAreas;
-    //grab up until first row
-    newData = data.substring(0,dataWidth*coords.y);
-    for(let y = 0; y<clipData.height; y++){
-      const rowStart = dataWidth*(coords.y+y);
-      const rowEnd = rowStart+dataWidth;
-      const pasteStart = rowStart+coords.x;
-      const pasteEnd = Math.min(pasteStart+clipData.width,rowEnd);
-      //get a row from the clipboard
-      let pasteRow = clipData.data.substring(y*clipData.width,(y+1)*clipData.width,dataWidth+y*clipData.width);
-      
-      //overlaying blank characters, like they're transparent
-      if(blend){
-        let tempRow = '';
-        for(let i = 0; i<pasteRow.length; i++){
-          //if it's a blank character, grab the character from the underlying canvas
-          if(pasteRow.charAt(i) === ' '){
-            tempRow += data.charAt(pasteStart+i);
-          }
-          else{
-            tempRow+=pasteRow.charAt(i);
-          }
-        }
-        pasteRow = tempRow;
-      }
-
-      //grab part that'll fit on the canvas
-      const pasteFinal = pasteRow.substring(0,Math.min(dataWidth-coords.x,clipData.width+coords.x));
-      newData += data.substring(rowStart,pasteStart)+pasteFinal+data.substring(pasteEnd,rowEnd);
-    }
-    newData += data.substring(dataWidth*(coords.y+clipData.height));
-    return newData;
-  }
 
   function shiftArea(coords,direction,data,dataWidth,preserveOriginalArea){
     let topL = {x:Math.min(coords.startCoord.x,coords.endCoord.x),y:Math.min(coords.startCoord.y,coords.endCoord.y)};
@@ -1028,7 +991,7 @@ function App() {
     }
 
     let newData = cutAreaAndFill(coords.startCoord,coords.endCoord,data,dataWidth,' ');
-    newData.data = paste(newData.cutData,newData.data,{x:Math.min(coords.startCoord.x,coords.endCoord.x)+direction.x,y:Math.min(coords.startCoord.y,coords.endCoord.y)+direction.y},dataWidth);
+    newData.data = pasteText(newData.cutData.data,{width:newData.cutData.width,height:newData.cutData.height},{x:Math.min(coords.startCoord.x,coords.endCoord.x)+direction.x,y:Math.min(coords.startCoord.y,coords.endCoord.y)+direction.y},{data:newData.data,width:dataWidth,height:newData.data.length/dataWidth});
     return newData.data;
   }
 
@@ -1119,13 +1082,14 @@ function App() {
             redo();
           else
             undo();
+          e.preventDefault();
           return;
         }
       }
       else if(e.key == 'c'){
         //copy text to clipboard
         if(e.metaKey){
-          copyText(asciiCanvasRef.current);
+          copyText(asciiCanvasRef.current,{escaped:false,linebreaks:true});
           return;
         }
       }
@@ -1287,7 +1251,7 @@ function App() {
     width : 'fit-content',
     height : 'fit-content',
     top:'0px',
-    left:'200px',
+    left:'0px',
     position:'fixed',
     float:'right',
     gap:'10px',
@@ -1300,6 +1264,7 @@ function App() {
     zIndex : 2,
     width : 'fit-content',
     height : 'fit-content',
+    transformOrigin:'top left',
     transform:'scale(3,1)',
     fontFamily: 'Arial, Helvetica, sans-serif',
     fontSize:'40px',
@@ -1325,13 +1290,14 @@ function App() {
     overflowY:'scroll'
   }
 
+  const leftOffset = Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x
+  const boxWidth = Math.abs(selectionBox.startCoord.x - selectionBox.endCoord.x);
   const selectionBoxStyle = {
-    width:String(Math.abs(selectionBox.startCoord.x - selectionBox.endCoord.x))+'ch',
-    height:String(Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*settings.lineHeight)+'em',
-    left:(Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x) + 'ch',
+    width:`calc(${boxWidth}ch + ${boxWidth*settings.textSpacing}px)`,
+    height:`${Math.abs(selectionBox.startCoord.y - selectionBox.endCoord.y)*settings.lineHeight}em`,
+    left:`calc(${leftOffset}ch + ${leftOffset*settings.textSpacing}px)`,
     top:String((Math.min(selectionBox.startCoord.y,selectionBox.endCoord.y)+selectionBox.moveBy.y)*settings.lineHeight) + 'em',
     lineHeight:settings.lineHeight,
-    letterSpacing:settings.textSpacing+'px',
     fontSize:settings.fontSize+'px',
     borderColor:settings.textColor,
     zIndex:'0',
@@ -1360,34 +1326,46 @@ function App() {
   }
 
   const highlightBoxStyle = {
+    visibility:settings.textSelectable?'hidden':'visible',
     width:'1ch',
     height: settings.lineHeight+'em',
-
-    left: String(activeCharIndex%asciiCanvas.width) + 'ch',
-    top: String(Math.trunc(activeCharIndex/asciiCanvas.width)*settings.lineHeight)+'em',
+    left: `calc(${activeCharIndex%asciiCanvas.width - 0.1}ch + ${settings.textSpacing*(activeCharIndex%asciiCanvas.width)}px)`,
+    top: `${Math.trunc(activeCharIndex/asciiCanvas.width)*settings.lineHeight}em`,
     lineHeight:settings.lineHeight,
-    letterSpacing:settings.textSpacing+'px',
+    // letterSpacing:settings.textSpacing+'px',
     fontSize:settings.fontSize+'px',
     position:'absolute',
     animation: 'blinkBackground 0.5s infinite'
   };
 
   const canvasContainerStyle = {
+    position:'absolute',
+    left:'20px',
+    top:'20px',
     width:'fit-content',
     height:'fit-content',
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
-    marginTop: '120px',
-    position:'relative',
     whiteSpace: 'pre',
     fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
   }
 
+  const pageContainerStyle = {
+    position:'fixed',
+    top:'100px',
+    left:'350px',
+    overflow:'scroll',
+    width:'calc(100% - 350px)',
+    height:'calc(100vh - 100px)',
+  }
+
   const canvasStyle = {
     userSelect : settings.textSelectable?'text':'none',
-
+    display:'block',
+    position:'relative',
     cursor:settings.textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
-
+    marginLeft:'10px',
+    marginTop:'10px',
     fontSize:settings.fontSize+'px',
     color:settings.textColor,
     backgroundColor:'transparent',
@@ -1414,7 +1392,7 @@ function App() {
     backgroundColor:settings.backgroundColor,
     top:'-'+String(settings.lineHeight)+'em',
     fontSize:settings.fontSize+'px',
-    width: asciiCanvas.width+2+'ch'
+    width:`calc(${asciiCanvas.width+2}ch + ${(asciiCanvas.width+1)*settings.textSpacing}px)`,
   };
 
   const loadImage = (files) => {
@@ -1450,7 +1428,7 @@ function App() {
 
   function getStampCanvas(){
     // console.log(clipboardText,clipboardDimensions);
-    let canv = {...clipboardDimensions,data:createBackground({width:clipboardDimensions.width,height:clipboardDimensions.height})};
+    let canv = {...clipboardDimensions,data:createBackground({width:clipboardDimensions.width+2,height:clipboardDimensions.height+2})};
     console.log(canv);
     return addLineBreaksToText({data:pasteText(clipboardText,clipboardDimensions,{x:1,y:1},canv),width:clipboardDimensions.width+2,height:clipboardDimensions.height+2});
   }
@@ -1512,8 +1490,10 @@ function App() {
           const canvasText = asciiCanvasRef.current.data;
           const activeChar = activeCharIndexRef.current;
           let dimensions;
-          //if the user has already stored data in the clipboard from sketchbook, it'll have dimensions with it
-          if(clipDims !== undefined){
+          //if the user has already stored data in the clipboard from sketchbook
+          //AND if the content on the clipboard matches the content the user last copied from the app,
+          //use the clipboard dimensions (this SHOULD cut off the add newline characters)
+          if(clipDims !== undefined && clipboardTextRef.current === text){
             dimensions = clipDims;
           }
           //if not, paste it into the selectionbox
@@ -1603,23 +1583,21 @@ function App() {
       {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
       <div style = {titleContainer}>
       <div className = 'title_card' style = {titleStyle} >{'sketchbook'}</div>
-      <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'200px'}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'About'}</div>
+      <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'400px'}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'About'}</div>
       </div>
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
-        {/* <div className = 'help_text'>cursor: (x:{activeCharIndex%asciiCanvas.width} y:{Math.trunc(activeCharIndex/asciiCanvas.width)})</div> */}
-        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}}>selectable text [{settings.textSelectable?'X':' '}]</div>
-        {settings.textSelectable && 
-          <div className = 'help_text' style ={{color:'#ff0000'}}>(cmd+a) select all</div>
-        }
-        {!settings.textSelectable && <>
-        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}}>advance cursor when typing [{settings.advanceWhenCharacterEntered?'X':' '}]</div>
+        {/* tools */}
+        <div className = "ui_header">*------- tools -------*</div>
+        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}}>freeze text [{settings.textSelectable?'X':' '}]</div>
         <div style = {{display:'flex',gap:'10px'}}>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'stamp'?'blue':null,color:settings.drawingMode == 'stamp'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'stamp'})}>stamp</div>
+          {/* clear canvas */}
+          <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear</div>
         </div>
         {settings.drawingMode == 'stamp' &&
         <>
@@ -1655,7 +1633,7 @@ function App() {
                                                             cutText(asciiCanvasRef.current);
                                                             }}}>cut (cmd+x)</div>
         <div className = "ascii_button" style ={{color:'#ff0000'}} onClick = {(e) => {if(selectionBox.started || selectionBox.finished){
-                                                            copyText(asciiCanvasRef.current);
+                                                            copyText(asciiCanvasRef.current,{escaped:false,linebreaks:true});
                                                             }}}>copy (cmd+c)</div>
         </>}
         {/* paste button, when there's something to paste */}
@@ -1666,54 +1644,63 @@ function App() {
         }
         {/* overlay white space */}
         <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}}>{'blend transparency ['+(settings.blendTransparentAreas?'X':' ')+']'}</div>
-        <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {
-          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{height:asciiCanvasRef.current.height,width:val}),width:val});
-          setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSlidersRef.current.height})}}></NumberInput>
-        <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {
-          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:asciiCanvasRef.current.width,height:val}),height:val});
-          setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSlidersRef.current.width})}}></NumberInput>
-        { (canvasDimensionSliders.width != asciiCanvas.width || canvasDimensionSliders.height != asciiCanvas.height) &&
-          <div className = "ascii_button" onClick = {() =>{setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height}),width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height})}} style = {{color:'#0000ff'}}>[enter] apply</div>
-        }
-        <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
-        {/* copy settings */}
-        <div style = {{position:'relative'}}>
-          {/* copy text to clipboard*/}
-          <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current)}}>copy drawing to clipboard</div>
-          <div className = "ascii_button" onClick = {() => {setSettings({...settingsRef.current,copyTextWithLineBreaks:!settingsRef.current.copyTextWithLineBreaks})}}>{'  line breaks ['+(settings.copyTextWithLineBreaks?'X]':' ]')}</div>
-          <div className = "ascii_button" onClick = {() => {setSettings({...settingsRef.current,escapeTextBeforeCopying:!settingsRef.current.escapeTextBeforeCopying})}}>{'  escape text ['+(settings.escapeTextBeforeCopying?'X]':' ]')}</div>
-        </div>
-        {/* paste text to canvas from clipboard */}
-        <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
-        {/* clear canvas */}
-        <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear canvas</div>
-        <ColorPicker label = 'background color' backgroundColor = {settings.backgroundColor} textColor = {'#000000'} defaultValue={settings.backgroundColor} callback = {(val) => {setSettings({...settingsRef.current,backgroundColor:val})}}></ColorPicker>
-        <ColorPicker label = 'text color'  textColor = {settings.textColor} backgroundColor = {'transparent'} defaultValue={settings.textColor} callback = {(val) => {setSettings({...settingsRef.current,textColor:val})}}></ColorPicker>
         
+        {/* canvas */}
+        <br></br>
+        <div className = "ui_header">*------- page -------*</div>
+        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}}>advance cursor when typing [{settings.advanceWhenCharacterEntered?'X':' '}]</div>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-4} max = {4}></Slider>
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
+        <br></br>
+        <div style = {{display:'flex'}}>
+        <div style = {{marginLeft:'1ch'}} className = 'ui_header'>width:</div>
+        <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {
+          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{height:asciiCanvasRef.current.height,width:val}),width:val});
+          setCanvasDimensionSliders({width:val,height:canvasDimensionSliders.height})}} inputCallback = {(val) =>{setCanvasDimensionSliders({width:val,height:canvasDimensionSlidersRef.current.height})}}></NumberInput>
+        </div>
+        <div style = {{display:'flex'}}>
+        <div className = 'ui_header'>height:</div>
+        <NumberInput name = "height" value = {canvasDimensionSliders.height} min = {1} max = {1024} buttonCallback = {(val) => {
+          setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:asciiCanvasRef.current.width,height:val}),height:val});
+          setCanvasDimensionSliders({width:canvasDimensionSliders.width,height:val})}} inputCallback = {(val) =>{setCanvasDimensionSliders({height:val,width:canvasDimensionSlidersRef.current.width})}}></NumberInput>
+        </div>
+        { (canvasDimensionSliders.width != asciiCanvas.width || canvasDimensionSliders.height != asciiCanvas.height) &&
+          <div className = "ascii_button" onClick = {() =>{setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height}),width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height})}} style = {{color:'#0000ff'}}>[enter] apply</div>
+        }
+        <br></br>
+        <ColorPicker backgroundColor = {settings.backgroundColor} textColor = {settings.textColor} defaultValue = {{bg:settings.backgroundColor,fg:settings.textColor}} callback = {{bg:(val) => {setSettings({...settingsRef.current,backgroundColor:val})},fg:(val) => {setSettings({...settingsRef.current,textColor:val})}}}></ColorPicker>
+        <br></br>
+        <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         {/* drop zone */}
+        <div className = "ui_header">*------- image -------*</div>
         <DropZone title = "Drop images here, or click to upload." callback = {loadImage}></DropZone>
-        {/* <FilePicker title = 'render image' callback = {(val) => {loadImage(val);}}></FilePicker> */}
         {imageRenderer.imageLoaded &&
         <>
         <img className = "image_preview" src = {imageRenderer.imageSrc}/>
-        <AsciiPaletteInput value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
         <div style = {{display:'flex',gap:'10px'}}>
-          <AsciiBox width = "20" height = "10">
-            <div>palette presets:</div>
-            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'full'?'blue':null,color:asciiPalettePreset == 'full'?'white':null}} onClick = {()=>{setAsciiPalettePreset('full');setAsciiPalette(asciiPalettePresets['full']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>full</div>
-            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>symbols</div>
-            <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>letters</div>
-          </AsciiBox>
+          <div>Palettes:</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'full'?'blue':null,color:asciiPalettePreset == 'full'?'white':null}} onClick = {()=>{setAsciiPalettePreset('full');setAsciiPalette(asciiPalettePresets['full']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>full</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>symbols</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>letters</div>
         </div>
+        <AsciiPaletteInput value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
         <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }
-        {/* {ascii_rocket} */}
-        </>}
+        {/* copy */}
+        <br></br>
+        <div className = "ui_header">*------- clipboard -------*</div>
+        <div style = {{position:'relative'}}>
+          {/* copy text to clipboard*/}
+          <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current,{escaped:false,linebreaks:true})}}>copy drawing to clipboard</div>
+          {/* <div className = "ascii_button">{'*'}</div> */}
+          <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current,{escaped:true,linebreaks:false})}}>{'*> as one line'}</div>
+          <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current,{escaped:true,linebreaks:false})}}>{'*> as escaped code'}</div>
+          {/* paste text to canvas from clipboard */}
+          <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
+        </div>
         {/* brush preview */}
         {settings.showBrushPreview &&  
         <div style = {brushPreviewStyle}>
@@ -1721,8 +1708,9 @@ function App() {
         </div>
         }
       </div>
-      {/* canvas */}
-      <div className = "canvas_container" style = {canvasContainerStyle}>
+      {/* scrollable box, holding the canvas+background+border elements */}
+      <div className = "page_container" style = {pageContainerStyle}>
+        <div className = "canvas_container" style = {canvasContainerStyle}>
         {/* selection box */}
         {(selectionBox.started||selectionBox.finished) &&
           <div className = "selection_box" style = {selectionBoxStyle}/>
@@ -1735,9 +1723,12 @@ function App() {
         <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}>
           {addLineBreaksToText(asciiCanvas)}
         </div>
+        {!settings.textSelectable && 
         <div className = "canvas_background" style = {backgroundStyle}>
           {addLineBreaksToText({data:createBackground(asciiCanvas),width:asciiCanvas.width+2,height:asciiCanvas.height+2})}
         </div>
+        }
+      </div>
       </div>
     </div>
   )

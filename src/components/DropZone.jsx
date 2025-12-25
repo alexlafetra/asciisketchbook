@@ -2,9 +2,11 @@ import { useEffect } from "react";
 
 export const DropZone = ({title,callback}) => {
     function dropHandler(ev) {
+        
         const files = [...ev.dataTransfer.items]
         .map((item) => item.getAsFile())
         .filter((file) => file);
+        console.log(files);
         callback(files);
     }
     useEffect(()=>{
@@ -21,9 +23,6 @@ export const DropZone = ({title,callback}) => {
         );
         if (fileItems.length > 0) {
             e.preventDefault();
-            if (!dropZone.contains(e.target)) {
-            e.dataTransfer.dropEffect = "none";
-            }
         }
         });
     },[]);
@@ -43,7 +42,10 @@ export const DropZone = ({title,callback}) => {
             }
         }}>
           {title}
-          <input type="file" id="file-input" multiple accept="image/*" style = {{display:'none'}} onInput={callback} />
+          <input type="file" className="file-input" multiple accept="image/*" style = {{display:'none'}} onInput={(e) => {
+            console.log(e.target.files[0]);
+            callback(e.target.files);
+          }} />
         </label>
     )
 }

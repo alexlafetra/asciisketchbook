@@ -41,7 +41,7 @@ function Slider({maxLength,label,callback,min,max,stepsize,defaultValue,onMouseE
             {(value != defaultVal) && <span className = "slider_reset_button" style = {{cursor:'pointer'}}onClick = {(e) => {callback(defaultVal);setValue(defaultVal);}}>[x]</span>}
             <input className = "slider" type = "range" min = {min} max = {max} step = {stepsize} value = {value} onInput  = {callbackFn} style = {sliderStyle}>
             </input>
-            <div className = "slider_ascii_display" style = {asciiDisplayStyle}>{'['}<span style = {{color:'white',backgroundColor:`rgba(0,0,${prog*255},${prog})`}}>{progressBar}</span>{endString}</div>
+            <div className = "slider_ascii_display" style = {asciiDisplayStyle}>{'['}<span style = {{color:'white',backgroundImage:'linear-gradient(90deg, #0000ffff, #ff0000ff)'}}>{progressBar}</span>{endString}</div>
         </div>
     )
 }
