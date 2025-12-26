@@ -1762,7 +1762,7 @@ function App() {
         <div className = "ui_header">*------- page -------*</div>
         <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
-        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-4} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
         <br></br>
         <div style = {{display:'flex'}}>
@@ -1786,10 +1786,19 @@ function App() {
         <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         {/* drop zone */}
         <div className = "ui_header">*------- image -------*</div>
+
+        <br></br>
         {imageRenderer.imageLoaded &&
           <div className = 'help_text' style ={{color:'#ff0000',fontStyle: 'italic'}}>updating image resets the canvas!</div>
         }
-        <DropZone title = "Drop images here, or click to upload." callback = {loadImage}></DropZone>
+        <DropZone title = {
+          `+---------------------+
+|                     |
+|  Drop images here,  |
+| or click to upload. |
+|                     |
++---------------------+`}
+         callback = {loadImage}></DropZone>
         {imageRenderer.imageLoaded &&
         <>
         <img className = "image_preview" src = {imageRenderer.imageSrc}/>

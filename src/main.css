@@ -34,6 +34,7 @@ html{
     height:fit-content;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size:12px;
+    margin-bottom:200px;
 }
 .ascii_button{
     white-space: pre;
@@ -202,7 +203,7 @@ html{
     width: 150px;
     height: 75px;
     padding: 1em;
-    margin:10px;
+    /* margin:10px; */
     border: 1px dashed rgb(113, 136, 0);
     border-radius: 4px;
     color: rgb(113, 136, 0);

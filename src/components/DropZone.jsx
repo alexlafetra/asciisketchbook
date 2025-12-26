@@ -27,8 +27,16 @@ export const DropZone = ({title,callback}) => {
         });
     },[]);
 
+    const style = {
+        width:'fit-content',
+        height:'fit-content',
+        whiteSpace:'pre',
+        padding:'0px',
+        border:'none'
+    };
+
     return(
-        <label className = "drop-zone" onDrop = {dropHandler} onDragOver={(e)=>{
+        <label className = "drop-zone" style = {style} onDrop = {dropHandler} onDragOver={(e)=>{
             const fileItems = [...e.dataTransfer.items].filter(
                 (item) => item.kind === "file",
             );
