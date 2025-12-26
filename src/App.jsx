@@ -63,6 +63,8 @@ function App() {
     settingsRef.current = settings;
   },[settings]);
 
+  const [mouseCoords,setMouseCoords] = useState(null);
+
   const [selectionBox,setSelectionBox] = useState({
     started : false,
     finished : false,
@@ -416,7 +418,9 @@ function App() {
     const coords = getClickCoords(e);
     return {x:Math.min(Math.round(coords.x),asciiCanvasRef.current.width),y:Math.min(Math.round(coords.y),asciiCanvasRef.current.height)};
   }
+
   function handleMouseLeave(e){
+    setMouseCoords(null);
   }
 
   function handleMouseUp(e){
@@ -569,6 +573,7 @@ function App() {
     const newIndex = getClickIndex(e);
     const canvDims = asciiCanvasRef.current;
     const coords = getTruncatedClickCoords(e);
+    setMouseCoords(coords);
     switch(settings.drawingMode){
       case 'stamp':
         if(brushData.drawing){
@@ -1694,6 +1699,9 @@ function App() {
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
+        {mouseCoords &&
+          <div style = {{position:'absolute',right:'50px',top:'100px'}}>{`[${mouseCoords.x},${mouseCoords.y}]`}</div>
+        }
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
         <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
