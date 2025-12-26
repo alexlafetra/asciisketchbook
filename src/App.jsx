@@ -376,14 +376,15 @@ function App() {
   function endLine(endIndex){
     const start = {x:lineData.startIndex%asciiCanvas.width,y:Math.trunc(lineData.startIndex/asciiCanvas.width)};
     const end = {x:endIndex%asciiCanvas.width,y:Math.trunc(endIndex/asciiCanvas.width)};
+    const char = lineDataRef.current.fillByDirection?getLineDirectionalChar(start,end):currentChar;
     const line = {
       ...lineDataRef.current,
       begun : false,
       moved : false,
       endIndex : endIndex,
-      char : currentChar
+      char : char
     };
-    let temp = drawLine(start,end,currentChar,{...bufferCanvasRef.current});
+    let temp = drawLine(start,end,char,{...bufferCanvasRef.current});
     setLineData(line);
     setAsciiCanvas({...asciiCanvasRef.current,data:temp});
     setBufferCanvas({...asciiCanvasRef.current,data:temp});
@@ -548,6 +549,9 @@ function App() {
           const location = {x:Math.round(coords.x-clipboardDimensionsRef.current.width/2),y:Math.round(coords.y-clipboardDimensionsRef.current.height/2)};
           pasteClipboardContents(location);
           break;
+        case 'fill':
+          setAsciiCanvas({...asciiCanvasRef.current,data:fill(coords.x,coords.y,currentCharRef.current,asciiCanvasRef.current)});
+          break;
       }
       //cancel the selection box, if there was one
       const newBox = {
@@ -616,6 +620,10 @@ function App() {
             lastCoordinate:coords
           });
         }
+        break;
+      case 'fill':
+        if(e.buttons)
+          setAsciiCanvas({...asciiCanvasRef.current,data:fill(coords.x,coords.y,currentCharRef.current,asciiCanvasRef.current)});
         break;
     }
     //changing selbox
@@ -1050,6 +1058,63 @@ function App() {
     canvasData = canvasData.padStart(asciiCanvasRef.current.height*asciiCanvasRef.current.width,' ');
     setAsciiCanvas({...asciiCanvasRef.current,data:canvasData});
   }
+
+
+  function getCharFromString(x,y,str,dims){
+    return str.charAt(x+y*dims.width);
+  }
+
+  function fill(x,y,fillColor,canv){
+
+    let newData = canv.data;
+
+    //seed-checking fn that checks bounds and color to see if a pixel should be a new seed
+    const isValid = (xi,yi,color) => {
+        return ((xi >= 0) && (xi < canv.width) && (yi >= 0) && (yi < canv.height) && (getCharFromString(xi,yi,newData,canv) === color));
+    }
+
+    const scan = (lx, rx, y, stack, colorToBeFilled) => {
+        for (let i = lx; i <= rx; i++) {
+            if (isValid(i, y, colorToBeFilled)) {
+            stack.push({x: i, y: y, color: colorToBeFilled});
+            }
+        }
+        return stack;
+    }
+
+    const colorToBeFilled = getCharFromString(x,y,newData,canv);
+
+    if(!isValid(x,y,getCharFromString(x,y,newData,canv))){
+      return newData;
+    }
+
+    if (colorToBeFilled === fillColor) return newData;
+
+    let stack = [{x:x,y:y,color:colorToBeFilled}];
+
+    while (stack.length > 0) {
+        let seed = stack.pop();
+
+        //left fill
+        let lx = seed.x;
+        while (isValid(lx, seed.y, seed.color)) {
+            newData = writeCharacterXY(lx,seed.y,fillColor,{...canv,data:newData});
+            lx = lx -1;
+        }
+
+        //right fill
+        let rx = seed.x + 1;
+        while (isValid(rx, seed.y, seed.color)) {
+            newData = writeCharacterXY(rx,seed.y,fillColor,{...canv,data:newData});
+            rx = rx + 1;
+        }
+
+        //scan up/down
+        stack = scan(lx+1, rx-1, seed.y + 1, stack, seed.color);
+        stack = scan(lx+1, rx-1, seed.y - 1, stack, seed.color)
+    }
+    return newData;
+}
 
   function handleKeyPress(e){
 
@@ -1600,24 +1665,24 @@ function App() {
 
   function getLineDirectionalChar(start,end){
     const slope = (end.y - start.y)/(end.x - start.x);
-    const heading = Math.atan(slope);
-    console.log(heading/Math.PI);
-    if(heading < Math.PI/8)
+    const heading = Math.atan(slope)*180/Math.PI;
+    if(-22.5 <= heading && heading < 22.5)
       return '-';
-    else if(heading < Math.PI/4)
+    else if(22.5 <= heading && heading < 67.5)
       return '\\';
-    else if(heading < 3*Math.PI/8)
+    else if(67.5 <= heading && heading < 112.5)
       return '|'
-    else if(heading < Math.PI/2)
+    else if(112.5 <= heading && heading < 157.5)
       return '/';
-    else if(heading < 5*Math.PI/8)
+    else if(157.5 <= heading && heading < 202.5)
       return '-';
-    else if(heading < 3*Math.PI/4)
-      return '\\';
-    else if(heading < 7*Math.PI/8)
+    else if(-112.5 <= heading && heading < -67.5)
       return '|';
+    else if(-67.5 <= heading && heading < 0)
+      return '/';
     else return '*';
   }
+
   return (
     <div className = "app_container">
       {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
@@ -1636,6 +1701,7 @@ function App() {
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'stamp'?'blue':null,color:settings.drawingMode == 'stamp'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'stamp'})}>stamp</div>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'fill'?'blue':null,color:settings.drawingMode == 'fill'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'fill'})}>fill</div>
           {/* clear canvas */}
           <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear</div>
         </div>
