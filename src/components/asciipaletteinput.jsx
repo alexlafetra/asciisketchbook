@@ -1,7 +1,7 @@
 import { Input } from '@base-ui-components/react/input';
 
 
-function AsciiPaletteInput({value,callback}){
+function AsciiPaletteInput({value,callback,reverseCallback}){
     const asciiPaletteInputStyle = {
         // width:`${value.length}ch`,
         width:'fit-content',
@@ -15,10 +15,12 @@ function AsciiPaletteInput({value,callback}){
     }
     return(
         <>
-        <span>(characters)</span>
+        <div style = {{display:'flex'}}>characters -- (
+            <span className = 'ascii_button' onClick = {reverseCallback}>reverse</span>)
+        </div>
         <div style = {asciiPaletteInputStyle}>
         <Input style = {{...asciiPaletteInputStyle,border:'none',width:`${value.length}ch`}} value = {value} onInput = {inputHandler}/>
-        <div style = {{...asciiPaletteInputStyle,width:'100%',height:'1.5em',backgroundImage: 'linear-gradient(90deg, #ffffff, #000000)'}}></div>
+        <div style = {{...asciiPaletteInputStyle,width:'100%',height:'1.5em',backgroundImage: 'linear-gradient(-90deg, #ffffff, #000000)'}}></div>
         </div>
         </>
     )

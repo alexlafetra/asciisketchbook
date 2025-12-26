@@ -4,12 +4,12 @@ import ColorPicker from './components/colorpicker';
 import Slider from './components/slider';
 import './main.css';
 import Dropdown from './components/dropdown';
-import NumberInput from './components/NumberInput';
+import NumberInput from './components/NumberInput.jsx';
 import AsciiPaletteInput from './components/asciipaletteinput';
 import { ascii_rose,aboutText } from './about';
 import { DropZone } from './components/DropZone';
 import { presets } from './presets';
-
+import AsciiButton from './components/AsciiButton.jsx'
 function App() {
   const asciiPalettePresets = {
     symbols:`$@%&#*0/\\|()1{}[]?-_+~<>#!l;:,"^\`\'. `,
@@ -28,7 +28,7 @@ function App() {
     asciiCanvasRef.current = asciiCanvas;
   },[asciiCanvas]);
 
-  const [bufferCanvas,setBufferCanvas] = useState(presets[0].data);
+  const [bufferCanvas,setBufferCanvas] = useState({...asciiCanvas});
   const [currentChar,setCurrentChar] = useState('a');
   const [activeCharIndex,setActiveCharIndex] = useState(0);
   const [canvasDimensionSliders,setCanvasDimensionSliders] = useState(
@@ -38,6 +38,11 @@ function App() {
   );
   const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
   const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
+  const asciiPaletteRef = useRef(asciiPalette);
+
+  useEffect(()=>{
+    asciiPaletteRef.current = asciiPalette;
+  },[asciiPalette]);
 
   const [settings,setSettings] = useState({
     backgroundColor:'#ffffffff',
@@ -73,7 +78,8 @@ function App() {
     moved : false,
     startIndex : 0,
     endIndex : 0,
-    char : currentChar
+    char : currentChar,
+    fillByDirection : false,
   });
 
   const [imageRenderer,setImageRenderer] = useState(
@@ -128,6 +134,9 @@ function App() {
   },[currentChar]);
   useEffect(() => {
     imageRendererRef.current = {...imageRenderer};
+    if(imageRenderer.imageLoaded){
+      convertImageToAscii(imageRenderer.imageSrc);
+    }
   },[imageRenderer]);
   useEffect(() => {
     clipboardTextRef.current = clipboardText;
@@ -263,12 +272,12 @@ function App() {
   }
 
   function convertImage(img){
-    //70 char long
+
     const outputDimensions = {width:asciiCanvas.width,height:asciiCanvas.height};
 
     const palette = asciiPalette;
     if(palette.length === 0){
-      let warningString = '[no character palette to raster with]';
+      let warningString = '[no character palette to raster with!]';
       warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
       setAsciiCanvas({...asciiCanvasRef.current,data:warningString});
       return;
@@ -315,13 +324,6 @@ function App() {
       img.onload = function() {
         pushUndoState();
         convertImage(this);
-        setImageRenderer({
-          imageLoaded:true,
-          gamma:imageRenderer.gamma,
-          contrast:imageRenderer.contrast,
-          imageSrc:src,
-          needToReload:false
-        });
       };
       img.src = src;
     }
@@ -360,6 +362,7 @@ function App() {
   }
   function startLine(index){
     const line = {
+      ...lineDataRef.current,
       begun : true,
       moved : false,
       startIndex : index,
@@ -368,23 +371,22 @@ function App() {
     }
     setLineData(line);
     //store a copy of div contents in buffer canvas, so you can draw arbitrary lines on top of canvas w/o loosing anything
-    setBufferCanvas(asciiCanvasRef.current.data);
+    setBufferCanvas({...asciiCanvasRef.current});
   }
   function endLine(endIndex){
     const start = {x:lineData.startIndex%asciiCanvas.width,y:Math.trunc(lineData.startIndex/asciiCanvas.width)};
     const end = {x:endIndex%asciiCanvas.width,y:Math.trunc(endIndex/asciiCanvas.width)};
     const line = {
+      ...lineDataRef.current,
       begun : false,
       moved : false,
-      startIndex : lineData.startIndex,
       endIndex : endIndex,
       char : currentChar
     };
-    let tempCanvas = bufferCanvas;
-    tempCanvas = drawLine(start,end,currentChar,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:tempCanvas});
+    let temp = drawLine(start,end,currentChar,{...bufferCanvasRef.current});
     setLineData(line);
-    setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
-    setBufferCanvas(tempCanvas);
+    setAsciiCanvas({...asciiCanvasRef.current,data:temp});
+    setBufferCanvas({...asciiCanvasRef.current,data:temp});
   }
 
   function getClickIndex(e){
@@ -431,6 +433,7 @@ function App() {
           }
           else{
             const line = {
+              ...lineDataRef.current,
               begun : false,
               moved : false,
               startIndex : lineData.startIndex,
@@ -441,11 +444,10 @@ function App() {
           }
         }
         break;
+      case 'stamp':
       case 'brush':
-        setBrushData({
+        setBrushData({...brushData,
           drawing:false,
-          brushSize:brushData.brushSize,
-          brush:brushData.brush,
           lastCoordinate:undefined
         });
         break;
@@ -464,13 +466,13 @@ function App() {
     }
     //if you're done selecting, apply the transformation u set
     else if(selectionBox.finished){
-      const newBox = {
+      const newBox = {...selectionBox,
         started : false,
-        finished : false,
-        startCoord : selectionBox.startCoord,
-        endCoord : getRoundedClickCoords(e),
+        finished : true,
         movingText : false,
-        moveBy : {x:0,y:0}
+        moveBy:{x:0,y:0},
+        startCoord : {x:selectionBox.startCoord.x+selectionBox.moveBy.x,y:selectionBox.startCoord.y+selectionBox.moveBy.y},
+        endCoord : {x:selectionBox.endCoord.x+selectionBox.moveBy.x,y:selectionBox.endCoord.y+selectionBox.moveBy.y}
       };
       setSelectionBox(newBox);
     }
@@ -498,7 +500,7 @@ function App() {
 
         }
         else{
-          setBufferCanvas(asciiCanvasRef.current.data);
+          setBufferCanvas({...asciiCanvasRef.current});
           pushUndoState();
         }
         return;
@@ -516,7 +518,7 @@ function App() {
       };
       setSelectionBox(newBox);
       //store this version of div contents
-      setBufferCanvas(asciiCanvasRef.current.data);
+      setBufferCanvas({...asciiCanvasRef.current});
     }
     else{
       const newIndex = getClickIndex(e);
@@ -537,7 +539,14 @@ function App() {
           });
           break;
         case 'stamp':
-          pasteClipboardContents({x:coords.x-clipboardDimensionsRef.current.width/2,y:coords.y-clipboardDimensionsRef.current.height/2});
+          setBrushData({
+            drawing:true,
+            brushSize: brushData.brushSize,
+            brush: brushData.brush,
+            lastCoordinate:coords
+          });
+          const location = {x:Math.round(coords.x-clipboardDimensionsRef.current.width/2),y:Math.round(coords.y-clipboardDimensionsRef.current.height/2)};
+          pasteClipboardContents(location);
           break;
       }
       //cancel the selection box, if there was one
@@ -557,24 +566,29 @@ function App() {
     const canvDims = asciiCanvasRef.current;
     const coords = getTruncatedClickCoords(e);
     switch(settings.drawingMode){
+      case 'stamp':
+        if(brushData.drawing){
+          const location = {x:Math.round(coords.x-clipboardDimensionsRef.current.width/2),y:Math.round(coords.y-clipboardDimensionsRef.current.height/2)};
+          pasteClipboardContents(location);
+        }
+        break;
       case 'line':
         //changing line position
-        if(lineData.begun){
+        if(lineDataRef.current.begun){
           //if the index didn't change, you haven't moved
-          if(newIndex === lineData.startIndex){
+          if(newIndex === lineDataRef.current.startIndex){
             return;
           }
-          const tempCanvas = bufferCanvas;
-          const start = {x:lineData.startIndex%asciiCanvas.width,y:Math.trunc(lineData.startIndex/asciiCanvas.width)};          
+          const start = {x:lineDataRef.current.startIndex%asciiCanvas.width,y:Math.trunc(lineDataRef.current.startIndex/asciiCanvas.width)};          
           const line = {
+            ...lineDataRef.current,
             begun : true,
             moved : true,
-            startIndex : lineData.startIndex,
             endIndex : newIndex,
             char : currentChar
           };
           setLineData(line);
-          setAsciiCanvas({...asciiCanvasRef.current,data:drawLine(start,coords,currentChar,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:tempCanvas})});
+          setAsciiCanvas({...asciiCanvasRef.current,data:drawLine(start,coords,lineDataRef.current.fillByDirection?getLineDirectionalChar(start,coords):currentChar,{...bufferCanvasRef.current})});
         }
         break;
       case 'brush':
@@ -652,13 +666,14 @@ function App() {
           moveBy : moveBy
       };
       setSelectionBox(newBox);
-      setAsciiCanvas({...asciiCanvasRef.current,data:shiftArea(newBox,newBox.moveBy,bufferCanvasRef.current,asciiCanvasRef.current.width,true)});
+      setAsciiCanvas({...asciiCanvasRef.current,data:shiftArea(newBox,newBox.moveBy,bufferCanvasRef.current.data,asciiCanvasRef.current.width,true)});
     }
   }
 
   function writeCharacter(index,char,canvas){
     return canvas.data.substring(0,index)+char+canvas.data.substring(index+1);
   }
+
   function writeCharacterXY(x,y,char,canvas){
     //check bounds
     if((x < 0) || (x >= canvas.width) || (y < 0) || (y >= canvas.height))
@@ -1069,69 +1084,59 @@ function App() {
 
     //janky way to see if it's a letter
     if(e.key.length === 1){
-      if(e.key == 'x'){
-        if(e.metaKey){
-          pushUndoState();
-          cutText(textData,canvDims);
-          return;
+      if(e.metaKey){
+        switch(e.key){
+          case 'x':
+            pushUndoState();
+            cutText(textData,canvDims);
+            return;
+          case 'z':
+            if(e.shiftKey)
+              redo();
+            else
+              undo();
+            e.preventDefault();
+            return;
+          case 'c':
+            //copy text to clipboard
+            copyText(asciiCanvasRef.current,{escaped:false,linebreaks:true});
+            return;
+          case 'v':
+            pushUndoState();
+            pasteClipboardContents();
+            return;
+          //clear all with ctr+slash, ctrl+backspace is handled in backspace handler
+          case '/':
+          case '\\':
+            pushUndoState();
+            clearCanvas();
+            return;
+          case 'a':
+            setSelectionBox({
+              started : false,
+              finished : true,
+              startCoord : {x:0,y:0},
+              endCoord : {x:canvDims.width,y:canvDims.height},
+              movingText : false,
+              moveBy : {x:0,y:0}
+            });
+            return;
         }
       }
-      if(e.key == 'z'){
-        if(e.metaKey){
-          if(e.shiftKey)
-            redo();
-          else
-            undo();
-          e.preventDefault();
-          return;
-        }
-      }
-      else if(e.key == 'c'){
-        //copy text to clipboard
-        if(e.metaKey){
-          copyText(asciiCanvasRef.current,{escaped:false,linebreaks:true});
-          return;
-        }
-      }
-      //if ctrl v, and if there's something on the clipboard
-      else if(e.key == 'v'){
-        if(e.metaKey){
-          pushUndoState();
-          pasteClipboardContents();
-          return;
-        }
-      }
-      //clear all with ctr+slash, ctrl+backspace is handled in backspace handler
-      else if((e.key == '/' || e.key == '\\')&&e.metaKey){
-        pushUndoState();
-        clearCanvas();
-        return;
-      }
-      //select all
-      else if(e.key == 'a'){
-        if(e.metaKey){
-          setSelectionBox({
-            started : false,
-            finished : true,
-            startCoord : {x:0,y:0},
-            endCoord : {x:canvDims.width,y:canvDims.height},
-            movingText : false,
-            moveBy : {x:0,y:0}
-          });
-          return;
-        }
-      }
-      else if(e.key == ' '){
+      
+      if(e.key == ' '){
         e.preventDefault();
       }
+      
       //if you're not drawing a line, set the active char
       if(!line.begun){
         pushUndoState();
         //if selbox, fill the area
         if(selection.started || selection.finished){
-          let newData = cutAreaAndFill(selection.startCoord,selection.endCoord,textData,canvDims.width,e.key);
-          setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
+          let newData = cutAreaAndFill({x:selection.startCoord.x+selection.moveBy.x,y:selection.startCoord.y+selection.moveBy.y},{x:selection.endCoord.x+selection.moveBy.x,y:selection.endCoord.y+selection.moveBy.y},textData,canvDims.width,e.key);
           setCurrentChar(e.key);
+          setBufferCanvas({...asciiCanvasRef.current,data:newData.data})
+          setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
           return;
         }
         //write the character
@@ -1151,7 +1156,7 @@ function App() {
           endIndex : line.endIndex,
           char : e.key
         };
-        const tempCanvas  = drawLine(startCoords,endCoords,e.key,{width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:bufCanvas});
+        const tempCanvas  = drawLine(startCoords,endCoords,e.key,{...bufCanvas});
         setLineData(newL);
         setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
       }
@@ -1160,17 +1165,26 @@ function App() {
     else if(e.key === 'Backspace'){
       pushUndoState();
       if(e.metaKey){
-        clearCanvas();
+        setAsciiCanvas({...asciiCanvasRef.current,data:clearCanvas(asciiCanvasRef.current,selection)});
         return;
       }
-      setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,' ',textData)});
+      //if selbox, clear the area
+      else if(selection.finished){
+        let newData = cutAreaAndFill({x:selection.startCoord.x+selection.moveBy.x,y:selection.startCoord.y+selection.moveBy.y},{x:selection.endCoord.x+selection.moveBy.x,y:selection.endCoord.y+selection.moveBy.y},textData,canvDims.width,' ');
+        setBufferCanvas({...asciiCanvasRef.current,data:newData.data})
+        setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
+        return;
+      }
+
+      //normal delete
+      setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,' ',{data:textData})});
       if(settingsRef.current.advanceWhenCharacterEntered && index > 0){
         setActiveCharIndex(index-1);
       }
     }
     else if(e.key === 'ArrowRight'){
       //move returns false if it doesn't work
-      if(move(selection,{x:1,y:0},bufCanvas,canvDims)){
+      if(move(selection,{x:1,y:0},bufCanvas.data,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1181,7 +1195,7 @@ function App() {
     }
     else if(e.key === 'ArrowLeft'){
       //move returns false if it doesn't work
-      if(move(selection,{x:-1,y:0},bufCanvas,canvDims)){
+      if(move(selection,{x:-1,y:0},bufCanvas.data,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1192,7 +1206,7 @@ function App() {
     }
     else if(e.key === 'ArrowUp'){
       //move returns false if it doesn't work
-      if(move(selection,{x:0,y:-1},bufCanvas,canvDims)){
+      if(move(selection,{x:0,y:-1},bufCanvas.data,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1203,7 +1217,7 @@ function App() {
     }
     else if(e.key === 'ArrowDown'){
       //move returns false if it doesn't work
-      if(move(selection,{x:0,y:1},bufCanvas,canvDims)){
+      if(move(selection,{x:0,y:1},bufCanvas.data,canvDims)){
         return;
       }
       else if(e.shiftKey)
@@ -1232,6 +1246,12 @@ function App() {
       finalString += canvas.data.substring(row*canvas.width,(row+1)*canvas.width)+'\n';
     }
     return finalString;
+  }
+
+  function reverseAsciiPalette(){
+    const reversed = asciiPaletteRef.current.split('').toReversed().join('');
+    setAsciiPalette(reversed);
+    setImageRenderer({...imageRenderer,needToReload:true});
   }
 
   const asciiDisplayStyle = {
@@ -1332,7 +1352,6 @@ function App() {
     left: `calc(${activeCharIndex%asciiCanvas.width - 0.1}ch + ${settings.textSpacing*(activeCharIndex%asciiCanvas.width)}px)`,
     top: `${Math.trunc(activeCharIndex/asciiCanvas.width)*settings.lineHeight}em`,
     lineHeight:settings.lineHeight,
-    // letterSpacing:settings.textSpacing+'px',
     fontSize:settings.fontSize+'px',
     position:'absolute',
     animation: 'blinkBackground 0.5s infinite'
@@ -1364,8 +1383,6 @@ function App() {
     display:'block',
     position:'relative',
     cursor:settings.textSelectable?'text':(selectionBox.finished?'grab':'pointer'),
-    marginLeft:'10px',
-    marginTop:'10px',
     fontSize:settings.fontSize+'px',
     color:settings.textColor,
     backgroundColor:'transparent',
@@ -1378,13 +1395,14 @@ function App() {
   const brushPreviewStyle = {
     width:(brushData.brushSize*2)+'ch',
     whiteSpace:'pre',
-    fontSize:settings.fontSize+'px',
+    // fontSize:settings.fontSize+'px',
+    fontSize:'6px',
     color:settings.textColor,
     backgroundColor:'transparent',
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
-    marginLeft:'20px',
-    direction: 'rtl'
+    // marginLeft:'20px',
+    // direction: 'rtl'
   }
 
   const backgroundStyle = {
@@ -1406,7 +1424,11 @@ function App() {
 
       //attach a callback for when the FR is done opening the img
       reader.onload = (e) => {
-        convertImageToAscii(reader.result);
+        setImageRenderer({...imageRendererRef.current,
+          imageLoaded:true,
+          imageSrc:reader.result
+        })
+        // convertImageToAscii(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -1427,14 +1449,53 @@ function App() {
   }
 
   function getStampCanvas(){
-    // console.log(clipboardText,clipboardDimensions);
-    let canv = {...clipboardDimensions,data:createBackground({width:clipboardDimensions.width+2,height:clipboardDimensions.height+2})};
-    console.log(canv);
-    return addLineBreaksToText({data:pasteText(clipboardText,clipboardDimensions,{x:1,y:1},canv),width:clipboardDimensions.width+2,height:clipboardDimensions.height+2});
+    const maxWidth = 32;
+    const maxHeight = 16;
+    let canv = {height:clipboardDimensions.height+2,width:clipboardDimensions.width+2,data:createBackground({width:clipboardDimensions.width,height:clipboardDimensions.height})};
+    canv.data = pasteText(clipboardText,clipboardDimensions,{x:1,y:1},canv);
+    if(canv.width > maxWidth){
+      const startOffset = Math.ceil(maxWidth/2);
+      const endOffset = Math.floor(maxWidth/2);
+      let newStr = '';
+      for(let y = 0; y<canv.height; y++){
+        newStr += canv.data.substring(y*canv.width,(y)*canv.width+startOffset-1);
+        newStr += '.';
+        newStr += canv.data.substring((y+1)*canv.width - endOffset,(y+1)*canv.width);
+      }
+      canv.width = maxWidth;
+      canv.data = newStr;
+    }
+    if(canv.height > maxHeight){
+      const startOffset = Math.ceil(maxHeight/2);
+      const endOffset = Math.floor(maxHeight/2);
+      let newStr = canv.data.substring(0,(startOffset-1) * canv.width);
+      newStr += '.'.padEnd(canv.width,'.');
+      newStr += canv.data.substring(canv.data.length-(endOffset * canv.width));
+      canv.height = maxHeight;
+      canv.data = newStr;
+    }
+    return addLineBreaksToText(canv);
   }
 
 
   function pasteText(clipText,clipTextDims,coords,canvas){
+    //if the coords start off the page, crop the paste area so it just contains the part that fits
+    if(coords.x < 0){
+      const offset = Math.abs(coords.x);
+      let newStr = '';
+      for(let y = 0; y<clipTextDims.height; y++){
+        newStr += clipText.substring(y*clipTextDims.width+offset,(y+1)*clipTextDims.width);
+      }
+      clipTextDims.width += coords.x;
+      clipText = newStr;
+      coords.x = 0;
+    }
+    if(coords.y < 0){
+      let newStr = clipText.substring(-coords.y*clipTextDims.width);
+      clipTextDims.height += coords.y;
+      clipText = newStr;
+      coords.y = 0;
+    }
     let newData = '';
     //grab up until first row
     newData = canvas.data.substring(0,canvas.width*coords.y);
@@ -1537,47 +1598,26 @@ function App() {
     setCanvasDimensionSliders({height:newPreset.height,width:newPreset.width});
   }
 
-  const AsciiBox = ({width,height,children}) => {
-    const asciiBoxStyle = {
-      whiteSpace: 'pre',
-      fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      fontSize: '10px',
-      position:'absolute',
-      display:'block',
-      textWrap:'',
-      overflowWrap: 'break-word',
-      left:'-1ch',
-      top:'-1em',
-      width:`${width+2}ch`
-    }
-    const cornerCharacter = '*';
-    let topStr = '';
-    topStr = cornerCharacter + topStr.padEnd(width+1,'-') + cornerCharacter;
-
-    let sideStr = '|';
-    sideStr = sideStr.padEnd(width+1,' ');
-    // sideStr += '|';
-
-    let mainStr = topStr;
-    for(let i = 0; i < height; i++){
-      mainStr += sideStr;
-    }
-    mainStr+=topStr;
-
-    return(
-      <div style = {asciiBoxStyle}>
-        {mainStr}
-        {Children.map(children, child =>
-            {child}
-        )}
-      </div>
-    )
+  function getLineDirectionalChar(start,end){
+    const slope = (end.y - start.y)/(end.x - start.x);
+    const heading = Math.atan(slope);
+    console.log(heading/Math.PI);
+    if(heading < Math.PI/8)
+      return '-';
+    else if(heading < Math.PI/4)
+      return '\\';
+    else if(heading < 3*Math.PI/8)
+      return '|'
+    else if(heading < Math.PI/2)
+      return '/';
+    else if(heading < 5*Math.PI/8)
+      return '-';
+    else if(heading < 3*Math.PI/4)
+      return '\\';
+    else if(heading < 7*Math.PI/8)
+      return '|';
+    else return '*';
   }
-
-  if(imageRenderer.imageLoaded && imageRenderer.needToReload){
-    convertImageToAscii(imageRenderer.imageSrc);
-  }
-
   return (
     <div className = "app_container">
       {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
@@ -1591,7 +1631,7 @@ function App() {
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
-        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}}>freeze text [{settings.textSelectable?'X':' '}]</div>
+        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <div style = {{display:'flex',gap:'10px'}}>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
@@ -1602,8 +1642,10 @@ function App() {
         {settings.drawingMode == 'stamp' &&
         <>
           {clipboardText &&
-          <div style = {{...brushPreviewStyle,width:clipboardDimensions.width+2+'ch',height:clipboardDimensions.height+2.5+'em'}}>
-            {getStampCanvas()}
+          <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}>
+            <div style = {{...brushPreviewStyle,width:'fit-content',height:'fit-content'}}>
+              {getStampCanvas()}
+            </div>
           </div>
           }
           {
@@ -1612,10 +1654,13 @@ function App() {
           }
         </>
         }
+        {settings.drawingMode == 'line' &&
+          <AsciiButton state = {lineData.fillByDirection} title = {'use directional \'-\\|/)\' char'} onClick = {() => {setLineData({...lineDataRef.current,fillByDirection:!lineDataRef.current.fillByDirection})}}></AsciiButton>
+        }
         {settings.drawingMode == 'brush' &&
         <>
           <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setSettings({...settingsRef.current,showBrushPreview:true})} onMouseLeave = {() => setSettings({...settingsRef.current,showBrushPreview:false})}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
-          <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}>{'dynamic ['+(settings.useDynamicBrush?'x':' ')+']'}</div>
+          <AsciiButton state = {settings.useDynamicBrush} title = {'dynamic'} onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}></AsciiButton>
         </>
         }
         {!(selectionBox.started || selectionBox.finished) && 
@@ -1643,12 +1688,13 @@ function App() {
                                                           }}>paste (cmd+v)</div>
         }
         {/* overlay white space */}
-        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}}>{'blend transparency ['+(settings.blendTransparentAreas?'X':' ')+']'}</div>
+        
+        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}} title = {'blend transparency'} state = {settings.blendTransparentAreas}></AsciiButton>
         
         {/* canvas */}
         <br></br>
         <div className = "ui_header">*------- page -------*</div>
-        <div className = 'ascii_button' onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}}>advance cursor when typing [{settings.advanceWhenCharacterEntered?'X':' '}]</div>
+        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-4} max = {4}></Slider>
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
@@ -1674,6 +1720,9 @@ function App() {
         <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         {/* drop zone */}
         <div className = "ui_header">*------- image -------*</div>
+        {imageRenderer.imageLoaded &&
+          <div className = 'help_text' style ={{color:'#ff0000',fontStyle: 'italic'}}>updating image resets the canvas!</div>
+        }
         <DropZone title = "Drop images here, or click to upload." callback = {loadImage}></DropZone>
         {imageRenderer.imageLoaded &&
         <>
@@ -1684,7 +1733,7 @@ function App() {
           <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>symbols</div>
           <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>letters</div>
         </div>
-        <AsciiPaletteInput value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
+        <AsciiPaletteInput reverseCallback={reverseAsciiPalette} value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
         <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
@@ -1702,9 +1751,11 @@ function App() {
           <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
         </div>
         {/* brush preview */}
-        {settings.showBrushPreview &&  
-        <div style = {brushPreviewStyle}>
-          {addLineBreaksToText({data:getBrushCanvas(brushData.brushSize),width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+        {settings.showBrushPreview && 
+        <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}> 
+          <div style = {brushPreviewStyle}>
+            {addLineBreaksToText({data:getBrushCanvas(brushData.brushSize),width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+          </div>
         </div>
         }
       </div>
