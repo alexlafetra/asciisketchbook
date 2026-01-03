@@ -6,7 +6,7 @@ import './main.css';
 import Dropdown from './components/dropdown';
 import NumberInput from './components/NumberInput.jsx';
 import AsciiPaletteInput from './components/asciipaletteinput';
-import { ascii_rose,aboutText } from './about';
+import { ascii_rose,ascii_title,aboutText } from './about';
 import { DropZone } from './components/DropZone';
 import { presets } from './presets';
 import AsciiButton from './components/AsciiButton.jsx'
@@ -44,6 +44,25 @@ function App() {
     asciiPaletteRef.current = asciiPalette;
   },[asciiPalette]);
 
+  const fontOptions = [
+    {
+      title:'Any monospace font',
+      cssName:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    },
+    {
+      title:'Syne Mono',
+      cssName:'Syne Mono'
+    },
+    {
+      title:'Bytesized',
+      cssName:'Bytesized'
+    },
+    {
+      title:'Workbench',
+      cssName:'Workbench'
+    }
+  ];
+
   const [settings,setSettings] = useState({
     backgroundColor:'#ffffffff',
     textColor:'#0000ffff',
@@ -53,10 +72,10 @@ function App() {
     textSelectable:false,
     drawingMode:'brush',
     showAbout:false,
-    showBrushPreview:false,
     blendTransparentAreas:true,
     advanceWhenCharacterEntered:true,
-    useDynamicBrush:false
+    useDynamicBrush:false,
+    font:fontOptions[0].cssName
   });
   const settingsRef = useRef(settings);
   useEffect(() => {
@@ -274,7 +293,7 @@ function App() {
   }
 
   function convertImage(img){
-
+    
     const outputDimensions = {width:asciiCanvas.width,height:asciiCanvas.height};
 
     const palette = asciiPalette;
@@ -1197,39 +1216,51 @@ function App() {
       if(e.key == ' '){
         e.preventDefault();
       }
+      switch(settingsRef.current.drawingMode){
+        case 'brush':
+          pushUndoState();
+          //write the character
+          setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,e.key,asciiCanvasRef.current)});
+          if(settingsRef.current.advanceWhenCharacterEntered && index < (canvDims.width*canvDims.height-1)){
+            setActiveCharIndex(index+1);
+          }
+          break;
+        case 'line':
+          //if you're not drawing a line, handle it normally
+          // if(!line.begun){
+          //   pushUndoState();
+          //   //write the character
+          //   setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,e.key,asciiCanvasRef.current)});
+          //   if(settingsRef.current.advanceWhenCharacterEntered && index < (canvDims.width*canvDims.height-1)){
+          //     setActiveCharIndex(index+1);
+          //   }
+          // }
+          //if you are drawing a line, redraw it with the new character
+          if(line.moved){
+            const startCoords = {x:line.startIndex%canvDims.width,y:Math.trunc(line.startIndex/canvDims.width)};
+            const endCoords = {x:line.endIndex%canvDims.width,y:Math.trunc(line.endIndex/canvDims.width)};
+            const newL = {
+              begun : true,
+              moved : true,
+              startIndex : line.startIndex,
+              endIndex : line.endIndex,
+              char : e.key
+            };
+            const tempCanvas  = drawLine(startCoords,endCoords,e.key,{...bufCanvas});
+            setLineData(newL);
+            setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
+          }
+          break;
+      }
+      //if selbox, fill the area
+      if(selection.started || selection.finished){
+        let newData = cutAreaAndFill({x:selection.startCoord.x+selection.moveBy.x,y:selection.startCoord.y+selection.moveBy.y},{x:selection.endCoord.x+selection.moveBy.x,y:selection.endCoord.y+selection.moveBy.y},textData,canvDims.width,e.key);
+        setCurrentChar(e.key);
+        setBufferCanvas({...asciiCanvasRef.current,data:newData.data})
+        setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
+        return;
+      }
       
-      //if you're not drawing a line, set the active char
-      if(!line.begun){
-        pushUndoState();
-        //if selbox, fill the area
-        if(selection.started || selection.finished){
-          let newData = cutAreaAndFill({x:selection.startCoord.x+selection.moveBy.x,y:selection.startCoord.y+selection.moveBy.y},{x:selection.endCoord.x+selection.moveBy.x,y:selection.endCoord.y+selection.moveBy.y},textData,canvDims.width,e.key);
-          setCurrentChar(e.key);
-          setBufferCanvas({...asciiCanvasRef.current,data:newData.data})
-          setAsciiCanvas({...asciiCanvasRef.current,data:newData.data});
-          return;
-        }
-        //write the character
-        setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,e.key,asciiCanvasRef.current)});
-        if(settingsRef.current.advanceWhenCharacterEntered && index < (canvDims.width*canvDims.height-1)){
-          setActiveCharIndex(index+1);
-        }
-      }
-      //if you are drawing a line, redraw it with the new character
-      else if(line.moved){
-        const startCoords = {x:line.startIndex%canvDims.width,y:Math.trunc(line.startIndex/canvDims.width)};
-        const endCoords = {x:line.endIndex%canvDims.width,y:Math.trunc(line.endIndex/canvDims.width)};
-        const newL = {
-          begun : true,
-          moved : true,
-          startIndex : line.startIndex,
-          endIndex : line.endIndex,
-          char : e.key
-        };
-        const tempCanvas  = drawLine(startCoords,endCoords,e.key,{...bufCanvas});
-        setLineData(newL);
-        setAsciiCanvas({...asciiCanvasRef.current,data:tempCanvas});
-      }
       setCurrentChar(e.key);
     }
     else if(e.key === 'Backspace'){
@@ -1345,9 +1376,8 @@ function App() {
     position:'fixed',
     float:'right',
     gap:'10px',
-    // alignItems:'center',
     alignItems:'baseline',
-    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontFamily: settings.font,
     fontSize:'12px'
   }
   const titleStyle = {
@@ -1394,7 +1424,7 @@ function App() {
     position:'absolute',
     borderStyle:'dashed',
     borderWidth:'1px',
-    fontFamily:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontFamily: settings.font,
     backgroundColor:'#ffff00'
   }
 
@@ -1412,7 +1442,7 @@ function App() {
     borderStyle:'dashed',
     borderWidth:'1px',
     pointerEvents:'none',
-    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontFamily: settings.font,
   }
 
   const highlightBoxStyle = {
@@ -1436,7 +1466,7 @@ function App() {
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
     whiteSpace: 'pre',
-    fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+    fontFamily: settings.font,
   }
 
   const pageContainerStyle = {
@@ -1605,55 +1635,69 @@ function App() {
   async function pasteClipboardContents(coords){
     const contents = await navigator.clipboard.read(['text','images'])
     for(const item of contents){
-      for(const mimeType of item.types){
-        //if it's an image, overwrite the main canvas and render it
-        if(mimeType === 'image/png'){
-          const blob = await item.getType("image/png");
-          convertImageToAscii(URL.createObjectURL(blob));
+
+      //if any item on the clipboard is an image, just use that!
+      //^^ avoids pasting about text
+      let mimeType = 'text/plain';
+      for(let type of item.types){
+        if(type === 'image/png')
+          mimeType = type;
+      }
+      //if it's an image, overwrite the main canvas and render it
+      if(mimeType === 'image/png'){
+        const blob = await item.getType("image/png");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImageRenderer({...imageRendererRef.current,
+            imageLoaded:true,
+            imageSrc:reader.result
+          });
+          // convertImageToAscii(reader.result);
         }
-        //if it's text, paste it at the correct loc
-        else if(mimeType === 'text/plain'){
-          const blob = await item.getType('text/plain');
-          let text = await blob.text();
-          const clipDims = clipboardDimensionsRef.current;
-          const selBox = selectionBoxRef.current;
-          const canvDims = asciiCanvasRef.current;
-          const canvasText = asciiCanvasRef.current.data;
-          const activeChar = activeCharIndexRef.current;
-          let dimensions;
-          //if the user has already stored data in the clipboard from sketchbook
-          //AND if the content on the clipboard matches the content the user last copied from the app,
-          //use the clipboard dimensions (this SHOULD cut off the add newline characters)
-          if(clipDims !== undefined && clipboardTextRef.current === text){
-            dimensions = clipDims;
-          }
-          //if not, paste it into the selectionbox
-          else if(selBox.finished){
-            dimensions = {width:Math.abs(selBox.startCoord.x - selBox.endCoord.x),height:Math.abs(selBox.startCoord.y - selBox.endCoord.y)}
-          }
-          else{
-            //get the widest part of the clipboard text, to turn clipboard into a rectangle
-            //break it into strings by newline
-            const lines = text.split('\n');
-            let width = 0;
-            for(let line of lines){
-              if(line.length > width){
-                width = line.length;
-              }
-            }
-            text = '';
-            //pad each line to be 'width' characters long
-            for(let line of lines){
-              line = line.padEnd(width,' ');
-              text += line;
-            }
-            //set the dims to the new clipboard bounding rectangle dims
-            dimensions = {width:width,height:lines.length};
-          }
-          if(!coords)
-            coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
-          setAsciiCanvas({...asciiCanvasRef.current,data:pasteText(text,dimensions,coords,asciiCanvasRef.current)});
+        reader.readAsDataURL(blob);
+      }
+      //if it's text, paste it at the correct loc
+      else if(mimeType === 'text/plain'){
+        const blob = await item.getType('text/plain');
+        let text = await blob.text();
+        const clipDims = clipboardDimensionsRef.current;
+        const selBox = selectionBoxRef.current;
+        const canvDims = asciiCanvasRef.current;
+        const canvasText = asciiCanvasRef.current.data;
+        const activeChar = activeCharIndexRef.current;
+        let dimensions;
+        //if the user has already stored data in the clipboard from sketchbook
+        //AND if the content on the clipboard matches the content the user last copied from the app,
+        //use the clipboard dimensions (this SHOULD cut off the add newline characters)
+        if(clipDims !== undefined && clipboardTextRef.current === text){
+          dimensions = clipDims;
         }
+        //if not, paste it into the selectionbox
+        else if(selBox.finished){
+          dimensions = {width:Math.abs(selBox.startCoord.x - selBox.endCoord.x),height:Math.abs(selBox.startCoord.y - selBox.endCoord.y)}
+        }
+        else{
+          //get the widest part of the clipboard text, to turn clipboard into a rectangle
+          //break it into strings by newline
+          const lines = text.split('\n');
+          let width = 0;
+          for(let line of lines){
+            if(line.length > width){
+              width = line.length;
+            }
+          }
+          text = '';
+          //pad each line to be 'width' characters long
+          for(let line of lines){
+            line = line.padEnd(width,' ');
+            text += line;
+          }
+          //set the dims to the new clipboard bounding rectangle dims
+          dimensions = {width:width,height:lines.length};
+        }
+        if(!coords)
+          coords = {x:activeChar%canvDims.width,y:Math.trunc(activeChar/canvDims.width)};
+        setAsciiCanvas({...asciiCanvasRef.current,data:pasteText(text,dimensions,coords,asciiCanvasRef.current)});
       }
     }
   }
@@ -1689,14 +1733,15 @@ function App() {
   }
 
   return (
-    <div className = "app_container">
+    <div className = "app_container" style ={{fontFamily:settings.font}}>
       {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
-      <div style = {titleContainer}>
+      {/* <div style = {titleContainer}>
       <div className = 'title_card' style = {titleStyle} >{'sketchbook'}</div>
       <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'400px'}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'About'}</div>
-      </div>
+      </div> */}
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
+        {ascii_title}
         {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {mouseCoords &&
@@ -1704,7 +1749,6 @@ function App() {
         }
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
-        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <div style = {{display:'flex',gap:'10px'}}>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
@@ -1713,30 +1757,41 @@ function App() {
           {/* clear canvas */}
           <div className = "ascii_button" onClick = {(e) => {clearCanvas();}}>clear</div>
         </div>
-        {settings.drawingMode == 'stamp' &&
-        <>
-          {clipboardText &&
-          <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}>
-            <div style = {{...brushPreviewStyle,width:'fit-content',height:'fit-content'}}>
-              {getStampCanvas()}
+        {/* tool settings */}
+        <br></br>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>settings</div>
+        <div id = "tool-settings" style = {{display:'flex',flexDirection:'column'}}>
+          {settings.drawingMode == 'stamp' &&
+          <>
+            {clipboardText &&
+            <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}>
+              <div style = {{...brushPreviewStyle,width:'fit-content',height:'fit-content'}}>
+                {getStampCanvas()}
+              </div>
             </div>
-          </div>
+            }
+            {
+              !clipboardText &&
+              <div style = {{color:'red'}}>copy canvas area to create a stamp</div>
+            }
+          </>
           }
-          {
-            !clipboardText &&
-            <div style = {{color:'red'}}>copy canvas area to create a stamp</div>
+          {settings.drawingMode == 'line' &&
+            <AsciiButton state = {lineData.fillByDirection} title = {'use directional \'-\\|/)\' char'} onClick = {() => {setLineData({...lineDataRef.current,fillByDirection:!lineDataRef.current.fillByDirection})}}></AsciiButton>
           }
-        </>
-        }
-        {settings.drawingMode == 'line' &&
-          <AsciiButton state = {lineData.fillByDirection} title = {'use directional \'-\\|/)\' char'} onClick = {() => {setLineData({...lineDataRef.current,fillByDirection:!lineDataRef.current.fillByDirection})}}></AsciiButton>
-        }
-        {settings.drawingMode == 'brush' &&
-        <>
-          <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} onMouseEnter = {() => setSettings({...settingsRef.current,showBrushPreview:true})} onMouseLeave = {() => setSettings({...settingsRef.current,showBrushPreview:false})}  callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
-          <AsciiButton state = {settings.useDynamicBrush} title = {'dynamic'} onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}></AsciiButton>
-        </>
-        }
+          {settings.drawingMode == 'brush' &&
+          <>
+            <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} callback = {(val) => {setBrushData({lastCoordinate:brushData.lastCoordinate,drawing:brushData.drawing,brushSize:parseInt(val),brush:getBrushCanvas(parseInt(val))});}} value = {brushData.brushSize} defaultValue={brushData.brushSize} min = {0} max = {10}></Slider>
+            <AsciiButton state = {settings.useDynamicBrush} title = {'dynamic'} onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}></AsciiButton>
+            <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}> 
+            <div style = {brushPreviewStyle}>
+              {addLineBreaksToText({data:getBrushCanvas(brushData.brushSize),width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
+            </div>
+        </div>
+          </>
+          }
+        </div>
+        <br></br>
         {!(selectionBox.started || selectionBox.finished) && 
           <div className = 'help_text' style ={{color:'#ff0000'}}>(shift+drag to select an area)</div>
         }
@@ -1763,11 +1818,22 @@ function App() {
         }
         {/* overlay white space */}
         
-        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}} title = {'blend transparency'} state = {settings.blendTransparentAreas}></AsciiButton>
+        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}} title = {'treat spaces like transparency'} state = {settings.blendTransparentAreas}></AsciiButton>
         
         {/* canvas */}
         <br></br>
         <div className = "ui_header">*------- page -------*</div>
+        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
+        <div className = "dropdown_container">
+        <span className = "dropdown_label">font</span>
+        <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
+            onInput  = {(e) => {
+              const font = fontOptions.find((element) => element.title === e.target.value);
+              setSettings({...settingsRef.current,font:font.cssName});
+            }}>
+                <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
+        </select>
+        </div>
         <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
         <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
@@ -1833,14 +1899,6 @@ function App() {
           {/* paste text to canvas from clipboard */}
           <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
         </div>
-        {/* brush preview */}
-        {settings.showBrushPreview && 
-        <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}> 
-          <div style = {brushPreviewStyle}>
-            {addLineBreaksToText({data:getBrushCanvas(brushData.brushSize),width:brushData.brushSize*2+3,height:brushData.brushSize*2+3})}
-          </div>
-        </div>
-        }
       </div>
       {/* scrollable box, holding the canvas+background+border elements */}
       <div className = "page_container" style = {pageContainerStyle}>
