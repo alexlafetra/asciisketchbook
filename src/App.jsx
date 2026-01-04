@@ -1493,12 +1493,13 @@ function App() {
   }
 
   const brushPreviewStyle = {
-    width:(brushData.brushSize*2)+'ch',
+    // width:(brushData.brushSize*2)+'ch',
+    width:'fit-content',
     whiteSpace:'pre',
     // fontSize:settings.fontSize+'px',
     fontSize:'6px',
     color:settings.textColor,
-    backgroundColor:'transparent',
+    backgroundColor:settings.backgroundColor,
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
     // marginLeft:'20px',
@@ -1822,23 +1823,9 @@ function App() {
         
         {/* canvas */}
         <br></br>
-        <div className = "ui_header">*------- page -------*</div>
-        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
-        <div className = "dropdown_container">
-        <span className = "dropdown_label">font</span>
-        <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
-            onInput  = {(e) => {
-              const font = fontOptions.find((element) => element.title === e.target.value);
-              setSettings({...settingsRef.current,font:font.cssName});
-            }}>
-                <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
-        </select>
-        </div>
-        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
-        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
-        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
-        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
+        <div className = "ui_header">*------- text -------*</div>
         <br></br>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>canvas dimensions</div>
         <div style = {{display:'flex'}}>
         <div style = {{marginLeft:'1ch'}} className = 'ui_header'>width:</div>
         <NumberInput name = "width" value = {canvasDimensionSliders.width} min = {1} max = {1024} buttonCallback = {(val) => {
@@ -1855,7 +1842,27 @@ function App() {
           <div className = "ascii_button" onClick = {() =>{setAsciiCanvas({...asciiCanvasRef.current,data:resizeCanvas(asciiCanvasRef.current,{width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height}),width:canvasDimensionSlidersRef.current.width,height:canvasDimensionSlidersRef.current.height})}} style = {{color:'#0000ff'}}>[enter] apply</div>
         }
         <br></br>
+
         <ColorPicker backgroundColor = {settings.backgroundColor} textColor = {settings.textColor} defaultValue = {{bg:settings.backgroundColor,fg:settings.textColor}} callback = {{bg:(val) => {setSettings({...settingsRef.current,backgroundColor:val})},fg:(val) => {setSettings({...settingsRef.current,textColor:val})}}}></ColorPicker>
+        <br></br>
+      
+        <div className = "dropdown_container">
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>font</div>
+        <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
+            onInput  = {(e) => {
+              const font = fontOptions.find((element) => element.title === e.target.value);
+              setSettings({...settingsRef.current,font:font.cssName});
+            }}>
+                <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
+        </select>
+        </div>
+        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
+        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
+        <br></br>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>settings</div>
+        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
+        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <br></br>
         <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         {/* drop zone */}

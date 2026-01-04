@@ -31,11 +31,13 @@ function ColorPicker({callback,defaultValue,backgroundColor,textColor}){
         {/* <div style = {paletteHolderStyle}>
             {makePalette(32,8)}
         </div> */}
-        <div className = "color_picker_container" style = {{position:'relative',cursor:'pointer',width:'fit-content',height:'fit-content'}}>
-        {active &&
-            <div onClick = {(e) => {setActive(false)}} style = {{position:'absolute',right:'0px',top:'0px',color:'white',backgroundColor:'blue'}}>{'[x]'}</div>
-        }
-        <div className = "control_label" onClick = {(e) => {setActive(!active)}} style = {{color:'black',backgroundColor:active?'yellow':null}}>{'color'}</div>
+        <div className = "color_picker_container" onClick = {(e) => {setActive(!active)}} style = {{position:'relative',cursor:'pointer',width:'200px',height:'fit-content'}}>
+        <div style = {{position:'absolute',right:'0px',top:'0px',color:'white',backgroundColor:'blue'}}>{active?'[x]':'[ ]'}</div>
+        <div style = {{display:'flex',alignItems:'center'}}>
+        <div className = "control_label" onClick = {(e) => {setActive(!active)}} style = {{color:'black',backgroundColor:active?'yellow':null}}>color palette</div>
+        <div style = {{width:'10px',height:'10px',backgroundColor:textColor,margin:'0 6px'}}></div>
+        <div style = {{width:'10px',height:'10px',backgroundColor:backgroundColor,margin:'0 2px'}}></div>
+        </div>
         {active &&
         <div style = {{paddingLeft:'20px'}}>
             <div style = {{display:'flex'}}>

@@ -52,6 +52,12 @@ html{
     font-size:12px;
     margin-bottom:200px;
 }
+.ui_header{
+    /* background-color: black; */
+    color:blue;
+    width:fit-content;
+    font-style: italic;
+}
 .ascii_button{
     white-space: pre;
     color:black;
@@ -59,13 +65,9 @@ html{
     width:fit-content;
     display:block;
     cursor:pointer;
-    /* font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; */
 }
 .ascii_button:hover{
     background-color:#ffff00ff;
-}
-.control_label{
-    /* font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; */
 }
 .control_label:hover{
     background-color:#ffff00ff;
@@ -146,6 +148,11 @@ html{
     background-color: yellow;
     color:blue;
     font-family:inherit;
+    cursor:pointer;
+}
+.dropdown:hover{
+    background-color: blue;
+    color:white;
 }
 
 .file_input{
