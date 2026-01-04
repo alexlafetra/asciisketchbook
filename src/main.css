@@ -28,6 +28,15 @@ html{
     grid-template-areas: "ui";
     transition:0.2s;
 }
+.help_button{
+    z-index: 1;
+    color:blue;
+    background-color: transparent;
+}
+.help_button:hover{
+    color:white;
+    background-color: blue;
+}
 .ascii_canvas{
     position:relative;
     z-index:1;

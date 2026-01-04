@@ -1,7 +1,7 @@
+const highlightColor = '#ff0000ff';
 const keyboardShortcutStyle = {
-    // marginLeft:'40px',
-    fontFamily:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    color:"#ffee00ff"
+    color:"#ffee00ff",
+    textShadow:' -1px -1px 0 '+highlightColor+', 1px -1px 0 '+highlightColor+', -1px 1px 0 '+highlightColor+', 1px 1px 0 '+highlightColor,
 }
 
 
@@ -50,31 +50,43 @@ export const ascii_title = <div className = "ascii_graphics" style = {{width:'50
 export const aboutText = (
     <>
     {ascii_rose}
-    +---------------------------------------------------------------------+
+    <div style ={{width:'fit-content',margin:'auto'}}>+---------------------------------------------------+</div>
     <div style = {{marginLeft:'10px',marginTop:'10px'}}>
-    This is a sketchbook designed for experimenting with monospace text. I use it for drawing and for writing. The sketchbook is raw HTML text which can be copied or pasted into from other sources.
+    This is a sketchbook designed for experimenting with monospace text.
+    Drawing/imagemaking is rendered through a string of raw HTML text, which can be copied from this sketchbook or pasted into it from other sources, or typed directly onto the canvas like using a typewriter.
+    It also supports an image rendering algorithm and some editing tools designed for weird, experimental ascii art imagemaking.
+    <br></br>
+    <br></br>
+    <span style = {{marginLeft:'10px'}}>
+    written by <a style = {keyboardShortcutStyle}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
+    </span>
+    <br></br>
+    <div style ={{width:'fit-content',margin:'auto'}}>{'<3'}</div>
     </div>
     <br></br>
-    +---------------------------------------------------------------------+
+    <div style ={{width:'fit-content',margin:'auto'}}>+---------------------------------------------------+</div>
     {ascii_rocket}
     <br></br>
     <div style = {{marginLeft:"10px"}}>
     <span style = {keyboardShortcutStyle}>the basics</span><br></br>
-    Typing text enters it into the canvas at the cursor location. The cursor can be moved by clicking, the arrow keys, or by typing if 'advance cursor when typing' is ticked.
+    Typing text enters it into the canvas at the cursor location, which advances as you write. The cursor can also be moved by clicking around and the arrow keys.
     <br></br><br></br>
-    Shift clicking+dragging will create a selection box, which can be cut, copied, moved with the arrow keys, or dragged with the mouse. By default, whitespaces will be treated as "transparent" when moving or pasting text, but can be preserved by unticking "blend transparent areas."
+    Shift clicking+dragging will create a selection box, which can be filled with a character when typed or cut, copied, moved with the arrow keys, and dragged with the mouse. By default, whitespaces will be treated as "transparent" when moving or pasting text.
     </div>
     <br></br>
     <div style = {{marginLeft:"10px"}}>
+    <div style ={{width:'fit-content',margin:'auto'}}>+----------------------------------------+</div>
     <span style = {keyboardShortcutStyle}>drawing</span><br></br>
     </div>
     <div style = {{marginLeft:"40px"}}>
-    The character drawn is the last character pressed, show in the top left display box.<br></br><br></br>
-    <span style = {keyboardShortcutStyle}>Brush</span> ~ draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic brush' to draw lines that resize thickness based on mouse speed.<br></br>
+    The character drawn is the last character pressed, shown in the top left display box.<br></br><br></br>
+    <span style = {keyboardShortcutStyle}>Brush</span> ~ draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic' to draw lines that resize thickness based on the speed that they're drawn with.<br></br>
     <span style = {keyboardShortcutStyle}>Lines</span> ~ draw straight lines by dragging the mouse.<br></br>
-    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.<span style = {keyboardShortcutStyle}> Uploading or changing image settings will always overwrite the current canvas! </span><br></br>
+    <span style = {keyboardShortcutStyle}>Stamp</span> ~ draw using a copied section of the canvas as a brush.<br></br>
+    <span style = {keyboardShortcutStyle}>Fill</span> ~ fill an area using the current character (like a 'bucket fill')<br></br>
+    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.<span style = {keyboardShortcutStyle}> Uploading or changing any image settings will always overwrite the current canvas! </span><br></br>
     </div>
-    +---------------------------------------------------------------------+
+    <div style ={{width:'fit-content',margin:'auto'}}>+----------------------------------------+</div>
     <br></br>
     <div style = {{marginLeft:"10px"}}>
     <span style = {keyboardShortcutStyle}>shortcuts</span><br></br>
@@ -96,10 +108,5 @@ export const aboutText = (
     {/* Missile guidance systems are written with the same alphabet, the same text encoding, and stored in the same ascii format as what you create on this page. Abstracting technology from its physical reality is a strategy for depersonifying the people targeted by it, and alleviating the consequences for those who develop it. */}
     {/* <br></br> */}
     {/* {ascii_rose}                                                      */}
-
-    <br></br>
-    <span style = {{marginLeft:'10px'}}>
-    made by <a style = {{color:"#ffee00ff"}}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
-    </span>
     </>
   )

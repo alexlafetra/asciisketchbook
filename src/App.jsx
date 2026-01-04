@@ -1201,14 +1201,27 @@ function App() {
             clearCanvas();
             return;
           case 'a':
-            setSelectionBox({
-              started : false,
-              finished : true,
-              startCoord : {x:0,y:0},
-              endCoord : {x:canvDims.width,y:canvDims.height},
-              movingText : false,
-              moveBy : {x:0,y:0}
-            });
+            if(e.shiftKey){
+              e.preventDefault();
+              setSelectionBox({
+                started : false,
+                finished : false,
+                startCoord : {x:0,y:0},
+                endCoord : {x:0,y:0},
+                movingText : false,
+                moveBy : {x:0,y:0}
+              });
+            }
+            else{
+              setSelectionBox({
+                started : false,
+                finished : true,
+                startCoord : {x:0,y:0},
+                endCoord : {x:canvDims.width,y:canvDims.height},
+                movingText : false,
+                moveBy : {x:0,y:0}
+              });
+            }
             return;
         }
       }
@@ -1380,34 +1393,18 @@ function App() {
     fontFamily: settings.font,
     fontSize:'12px'
   }
-  const titleStyle = {
-    zIndex : 2,
-    width : 'fit-content',
-    height : 'fit-content',
-    transformOrigin:'top left',
-    transform:'scale(3,1)',
-    fontFamily: 'Arial, Helvetica, sans-serif',
-    fontSize:'40px',
-    backgroundColor:'#0000ffff',
-    color:'#ff66bfff',
-  }
   
-  const highlightColor = '#ff0000ff';
   const aboutTextStyle = {
-    zIndex : 2,
-    display:'block',
     width : '605px',
-    // transform:'scale(1,0.5)',
-    fontFamily: 'Arial, Helvetica, sans-serif',
-    fontSize:'25px',
+    fontFamily: settings.font,
+    fontSize:'14px',
     color:'#0000ffff',
-    backgroundColor:'#ff66bfff',
-    textShadow:' -1px -1px 0 '+highlightColor+', 1px -1px 0 '+highlightColor+', -1px 1px 0 '+highlightColor+', 1px 1px 0 '+highlightColor,
-    top:'45px',
-    left:'0px',
-    bottom:'0px',
+    top:'0px',
+    right:'20px',
     position:'fixed',
-    overflowY:'scroll'
+    overflowY:'scroll',
+    height:'100vh',
+    zIndex:'3',
   }
 
   const leftOffset = Math.min(selectionBox.startCoord.x,selectionBox.endCoord.x)+selectionBox.moveBy.x
@@ -1433,7 +1430,6 @@ function App() {
     height:String((canvasDimensionSliders.height)*settings.lineHeight)+'em',
     left:'0',
     top:'0',
-    // borderColor:textColor,
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
     fontSize:settings.fontSize+'px',
@@ -1734,12 +1730,12 @@ function App() {
   }
 
   return (
+    <>
+    <div style = {aboutTextStyle}>
+      <div className = 'help_button' style = {{fontFamily:settings.font,textDecoration:'underline',cursor:'pointer',width:'fit-content',position:'fixed',top:'10px',right:'10px',backgroundColor:settings.showAbout?'blue':null,color:settings.showAbout?'white':null}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'about'}</div>
+      {settings.showAbout && <div className = "about_text">{aboutText}</div>}
+    </div>
     <div className = "app_container" style ={{fontFamily:settings.font}}>
-      {settings.showAbout && <div className = "about_text" style = {aboutTextStyle}>{aboutText}</div>}
-      {/* <div style = {titleContainer}>
-      <div className = 'title_card' style = {titleStyle} >{'sketchbook'}</div>
-      <div className = 'help_text' style = {{textDecoration:'underline',color:'#0000ff',cursor:'pointer',width:'fit-content',marginLeft:'400px'}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'About'}</div>
-      </div> */}
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_title}
@@ -1930,7 +1926,7 @@ function App() {
       </div>
       </div>
     </div>
-  )
+  </>);
 }
 
 export default App
