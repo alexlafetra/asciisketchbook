@@ -26,7 +26,7 @@ The character drawn is the last character pressed, shown in the top left display
 ***stamp***~ draw using a copied section of the canvas as a brush.<br></br>
 ***fill***~ fill an area using the current character (like a 'bucket fill')
 
-***images*** ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image. ***Uploading or changing any image settings will always overwrite the current canvas!***
+***images*** ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image. At first the image is drawn to a separate layer, but can be committed to the drawing and edited like normal text.
 
 ### shortcuts
 + **Cmd+A** - select all

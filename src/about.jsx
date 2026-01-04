@@ -84,7 +84,7 @@ export const aboutText = (
     <span style = {keyboardShortcutStyle}>Lines</span> ~ draw straight lines by dragging the mouse.<br></br>
     <span style = {keyboardShortcutStyle}>Stamp</span> ~ draw using a copied section of the canvas as a brush.<br></br>
     <span style = {keyboardShortcutStyle}>Fill</span> ~ fill an area using the current character (like a 'bucket fill')<br></br>
-    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.<span style = {keyboardShortcutStyle}> Uploading or changing any image settings will always overwrite the current canvas! </span><br></br>
+    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.At first the image is drawn to a separate layer, but can be committed to the drawing and edited like normal text.
     </div>
     <div style ={{width:'fit-content',margin:'auto'}}>+----------------------------------------+</div>
     <br></br>
