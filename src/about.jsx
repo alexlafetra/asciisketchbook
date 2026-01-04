@@ -90,18 +90,21 @@ export const aboutText = (
     <br></br>
     <div style = {{marginLeft:"10px"}}>
     <span style = {keyboardShortcutStyle}>shortcuts</span><br></br>
-    </div>    <div style = {{marginLeft:"40px"}}>
-    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....select all<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+A</span>.....undo<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+X</span>.....cut selected area<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+C</span>.....copy selected area<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+V</span>.....paste clipboard<br></br>
-    <span style = {keyboardShortcutStyle}>Cmd+Backspace or /</span>...clear Canvas<br></br>
-    <span style = {keyboardShortcutStyle}>Backspace</span>...delete character<br></br>
-    <span style = {keyboardShortcutStyle}>Arrow keys</span>...move cursor or translate selected text<br></br>
-    <span style = {keyboardShortcutStyle}>Arrow keys + Shift</span>...translate row/column<br></br>
-    <span style = {keyboardShortcutStyle}>Enter</span>...move cursor down a line<br></br>
-    <span style = {keyboardShortcutStyle}>Enter+Shift</span>...insert blank line<br></br>
+    </div>
+    <div style = {{marginLeft:"40px"}}>
+      <span style = {keyboardShortcutStyle}>Cmd+A</span>.....select all<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+Shift+A</span>.....deselect all<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+Z</span>.....undo<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+Shift+Z</span>.....redo<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+X</span>.....cut selected area<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+C</span>.....copy selected area<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+V</span>.....paste clipboard<br></br>
+      <span style = {keyboardShortcutStyle}>Cmd+Backspace or /</span>...clear Canvas<br></br>
+      <span style = {keyboardShortcutStyle}>Backspace</span>...delete character<br></br>
+      <span style = {keyboardShortcutStyle}>Arrow keys</span>...move cursor or translate selected text<br></br>
+      <span style = {keyboardShortcutStyle}>Arrow keys + Shift</span>...translate row/column<br></br>
+      <span style = {keyboardShortcutStyle}>Enter</span>...move cursor down a line<br></br>
+      <span style = {keyboardShortcutStyle}>Enter+Shift</span>...insert blank line<br></br>
     </div>
     {/* Understanding technology as a physical, human, inherently political resource--as opposed to the neutral, fingerprint-less identity most tech companies portray it as--limits our ability to conceptualize the labor, violence, and natural resources that go into producing, maintaining, and integrating ourselves with technology. */}
     <br></br>

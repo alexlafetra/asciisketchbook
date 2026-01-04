@@ -3,9 +3,9 @@ import { Input } from '@base-ui-components/react/input';
 
 function AsciiPaletteInput({value,callback,reverseCallback}){
     const asciiPaletteInputStyle = {
-        // width:`${value.length}ch`,
         width:'fit-content',
-        minWidth:'22ch',
+        zIndex:'3',
+        // minWidth:'22ch',
         padding:'none',
         fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
     }

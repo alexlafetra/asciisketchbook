@@ -1,4 +1,4 @@
-import { useState , useEffect , useRef , Children} from 'react'
+import { useState , useEffect , useRef , useMemo} from 'react'
 import React from 'react'
 import ColorPicker from './components/colorpicker';
 import Slider from './components/slider';
@@ -17,6 +17,8 @@ function App() {
     letters:`BWMoahkbdpqwmZOQLCJUYXzcvunxrjftilI `
   };
 
+  
+
   //holds the processed jsx children
   const [asciiCanvas,setAsciiCanvas] = useState({
     width:presets[0].width,
@@ -27,6 +29,8 @@ function App() {
   useEffect(() => {
     asciiCanvasRef.current = asciiCanvas;
   },[asciiCanvas]);
+
+  const [imageLayer,setImageLayer] = useState('');
 
   const [bufferCanvas,setBufferCanvas] = useState({...asciiCanvas});
   const [currentChar,setCurrentChar] = useState('a');
@@ -39,10 +43,6 @@ function App() {
   const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
   const [asciiPalette,setAsciiPalette] = useState(asciiPalettePresets['full']);
   const asciiPaletteRef = useRef(asciiPalette);
-
-  useEffect(()=>{
-    asciiPaletteRef.current = asciiPalette;
-  },[asciiPalette]);
 
   const fontOptions = [
     {
@@ -108,8 +108,7 @@ function App() {
       imageLoaded:false,
       gamma:1.0,
       contrast:1.0,
-      imageSrc:'test2.png',
-      needToReload:false
+      imageSrc:'test2.png'
     }
   );
 
@@ -153,12 +152,16 @@ function App() {
   useEffect(() => {
     currentCharRef.current = currentChar;
   },[currentChar]);
-  useEffect(() => {
-    imageRendererRef.current = {...imageRenderer};
+
+  useMemo(() => {
+    imageRendererRef.current = imageRenderer;
+    asciiPaletteRef.current = asciiPalette;
+    //if the image is loaded
     if(imageRenderer.imageLoaded){
+      //image is stored in the 'imageLayer' ref
       convertImageToAscii(imageRenderer.imageSrc);
     }
-  },[imageRenderer]);
+  },[imageRenderer,asciiPalette]);
   useEffect(() => {
     clipboardTextRef.current = clipboardText;
   },[clipboardText]);
@@ -295,12 +298,12 @@ function App() {
   function convertImage(img){
     
     const outputDimensions = {width:asciiCanvas.width,height:asciiCanvas.height};
-
     const palette = asciiPalette;
     if(palette.length === 0){
       let warningString = '[no character palette to raster with!]';
       warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
-      setAsciiCanvas({...asciiCanvasRef.current,data:warningString});
+      // setAsciiCanvas({...asciiCanvasRef.current,data:warningString});
+      setImageLayer(warningString);
       return;
     }
     const canvas = document.createElement("canvas");
@@ -336,7 +339,8 @@ function App() {
 
       newStr+= palette.charAt(paletteIndex);
     }
-    setAsciiCanvas({...asciiCanvasRef.current,data:newStr});
+    setImageLayer(newStr);
+    // setAsciiCanvas({...asciiCanvasRef.current,data:newStr});
   };
 
   function convertImageToAscii(src){
@@ -350,17 +354,41 @@ function App() {
     }
 
   }
+  function overlayImageOnCanvas(){
+    let canvasString = '';
+    for(let ch = 0; ch < asciiCanvas.data.length; ch++){
+      const char = asciiCanvas.data.charAt(ch);
+      if(char === ' ' && ch < imageLayer.length){
+        canvasString += imageLayer.charAt(ch);
+      }
+      else{
+        canvasString += char;
+      }
+    }
+    return canvasString;
+  }
+  function renderCanvas(){
+    let canvasString = '';
+    //if there's an image, overlay the canvas on top of it
+    if(imageRenderer.imageLoaded && imageLayer){
+      canvasString = overlayImageOnCanvas();
+    }
+    else{
+      canvasString = asciiCanvas.data;
+    }
+    return addLineBreaksToText({data:canvasString,width:asciiCanvas.width,height:asciiCanvas.height});
+  }
 
-  function createBackground(dims){
+  function createBackground(canvas){
     let side = '';
-    side = side.padStart(dims.width,' ');
+    side = side.padStart(canvas.width,' ');
     side = '|'+side+'|';
     let str = '';
-    for(let i = 0; i<dims.height; i++){
+    for(let i = 0; i<canvas.height; i++){
       str += side;
     }
     let top = '';
-    top = top.padStart(dims.width,'-');
+    top = top.padStart(canvas.width,'-');
     top = '*'+top+'*';
     return top+str+top;
   }
@@ -1365,7 +1393,6 @@ function App() {
   function reverseAsciiPalette(){
     const reversed = asciiPaletteRef.current.split('').toReversed().join('');
     setAsciiPalette(reversed);
-    setImageRenderer({...imageRenderer,needToReload:true});
   }
 
   const asciiDisplayStyle = {
@@ -1395,7 +1422,8 @@ function App() {
   }
   
   const aboutTextStyle = {
-    width : '605px',
+    maxWidth : '605px',
+    width:'fit-content',
     fontFamily: settings.font,
     fontSize:'14px',
     color:'#0000ffff',
@@ -1525,7 +1553,6 @@ function App() {
           imageLoaded:true,
           imageSrc:reader.result
         })
-        // convertImageToAscii(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -1649,7 +1676,6 @@ function App() {
             imageLoaded:true,
             imageSrc:reader.result
           });
-          // convertImageToAscii(reader.result);
         }
         reader.readAsDataURL(blob);
       }
@@ -1852,7 +1878,7 @@ function App() {
                 <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
         </select>
         </div>
-        <Slider maxLength = {20} label = {'font size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
+        <Slider maxLength = {20} label = {'font size'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
         <br></br>
@@ -1861,15 +1887,20 @@ function App() {
         <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <br></br>
         <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
+        <br></br>
         {/* drop zone */}
         <div className = "ui_header">*------- image -------*</div>
 
         <br></br>
         {imageRenderer.imageLoaded &&
-          <div className = 'help_text' style ={{color:'#ff0000',fontStyle: 'italic'}}>updating image resets the canvas!</div>
+        <>
+          <img className = "image_preview" src = {imageRenderer.imageSrc}/>
+          <div className = "ascii_button" onClick = {(e) => {setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null})}}>{'[Xx clear image xX]'}</div>
+          <div className = "ascii_button" onClick = {(e) => {setAsciiCanvas({width:asciiCanvasRef.current.width,height:asciiCanvasRef.current.height,data:overlayImageOnCanvas()});setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null});}}>{'[commit to canvas]'}</div>
+        </>
         }
         <DropZone title = {
-          `+---------------------+
+`+---------------------+
 |                     |
 |  Drop images here,  |
 | or click to upload. |
@@ -1878,16 +1909,15 @@ function App() {
          callback = {loadImage}></DropZone>
         {imageRenderer.imageLoaded &&
         <>
-        <img className = "image_preview" src = {imageRenderer.imageSrc}/>
         <div style = {{display:'flex',gap:'10px'}}>
           <div>Palettes:</div>
-          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'full'?'blue':null,color:asciiPalettePreset == 'full'?'white':null}} onClick = {()=>{setAsciiPalettePreset('full');setAsciiPalette(asciiPalettePresets['full']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>full</div>
-          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>symbols</div>
-          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);setImageRenderer({...imageRendererRef.current,needToReload:true});}}>letters</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'full'?'blue':null,color:asciiPalettePreset == 'full'?'white':null}} onClick = {()=>{setAsciiPalettePreset('full');setAsciiPalette(asciiPalettePresets['full']);}}>full</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'symbols'?'blue':null,color:asciiPalettePreset == 'symbols'?'white':null}} onClick = {()=>{setAsciiPalettePreset('symbols');setAsciiPalette(asciiPalettePresets['symbols']);}}>symbols</div>
+          <div className = 'ascii_button' style = {{backgroundColor:asciiPalettePreset == 'letters'?'blue':null,color:asciiPalettePreset == 'letters'?'white':null}} onClick = {()=>{setAsciiPalettePreset('letters');setAsciiPalette(asciiPalettePresets['letters']);}}>letters</div>
         </div>
-        <AsciiPaletteInput reverseCallback={reverseAsciiPalette} value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);setImageRenderer({...imageRenderer,needToReload:true})}} ></AsciiPaletteInput>
-        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
-        <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc,needToReload:true});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
+        <AsciiPaletteInput reverseCallback={reverseAsciiPalette} value = {asciiPalette} callback = {(val) => {setAsciiPalette(val);}} ></AsciiPaletteInput>
+        <Slider maxLength = {20} label = {'image brightness'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:(4.0 - val),contrast:imageRenderer.contrast,imageSrc:imageRenderer.imageSrc});}} defaultValue={imageRenderer.gamma} min = {0.0} max = {4.0}></Slider>
+        <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({imageLoaded:imageRenderer.imageLoaded,gamma:imageRenderer.gamma,contrast:val,imageSrc:imageRenderer.imageSrc});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }
         {/* copy */}
@@ -1916,11 +1946,12 @@ function App() {
         }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
         <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}>
-          {addLineBreaksToText(asciiCanvas)}
+          {/* {addLineBreaksToText(asciiCanvas)} */}
+          {renderCanvas()}
         </div>
         {!settings.textSelectable && 
         <div className = "canvas_background" style = {backgroundStyle}>
-          {addLineBreaksToText({data:createBackground(asciiCanvas),width:asciiCanvas.width+2,height:asciiCanvas.height+2})}
+          {addLineBreaksToText({data:createBackground({width:asciiCanvas.width,height:asciiCanvas.height}),width:asciiCanvas.width+2,height:asciiCanvas.height+2})}
         </div>
         }
       </div>
