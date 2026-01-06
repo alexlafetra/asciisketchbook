@@ -61,6 +61,8 @@ export const aboutText = (
     written by <a style = {keyboardShortcutStyle}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
     </span>
     <br></br>
+    <a style = {{marginLeft:'10px',fontStyle:'italic',color:'red'}} href = "https://github.com/alexlafetra/asciisketchbook">github</a>
+    <br></br>
     <div style ={{width:'fit-content',margin:'auto'}}>{'<3'}</div>
     </div>
     <br></br>

@@ -284,14 +284,14 @@ function App() {
 
   function escapeTextData(data){
     //u need to handle: ` ' " and \
-    //first, \
-    data = data.replace(/\\/g, '\\\\');
+    //first, \, but ignore \n characters (since those aren't typeable, and will only ever be a part of the canvas formatting)
+    data = data.replace(/\\(?!n)/g, '\\\\');
     //then, `
-    data = data.replace(/\`/g, '\\\`');
+    data = data.replace(/\`/g, '\\`');
     //then, '
     data = data.replace(/\'/g, '\\\'');
     //then, "
-    data = data.replace(/\"/g, '\\\"');
+    data = data.replace(/\"/g, '\\"');
     return data;
   }
 
@@ -1188,6 +1188,8 @@ function App() {
       return;
     }
 
+    e.preventDefault();
+
     //get fresh copies of the state data when this callback is fired
     const index = activeCharIndexRef.current;
     const activeChar = currentCharRef.current;
@@ -1212,7 +1214,6 @@ function App() {
               redo();
             else
               undo();
-            e.preventDefault();
             return;
           case 'c':
             //copy text to clipboard
@@ -1230,7 +1231,6 @@ function App() {
             return;
           case 'a':
             if(e.shiftKey){
-              e.preventDefault();
               setSelectionBox({
                 started : false,
                 finished : false,
@@ -1255,7 +1255,7 @@ function App() {
       }
       
       if(e.key == ' '){
-        e.preventDefault();
+
       }
       switch(settingsRef.current.drawingMode){
         case 'brush':
@@ -1319,7 +1319,7 @@ function App() {
       }
 
       //normal delete
-      setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(index,' ',{data:textData})});
+      setAsciiCanvas({...asciiCanvasRef.current,data:writeCharacter(settingsRef.current.advanceWhenCharacterEntered?Math.max(index-1,0):index,' ',{data:textData})});
       if(settingsRef.current.advanceWhenCharacterEntered && index > 0){
         setActiveCharIndex(index-1);
       }
@@ -1755,6 +1755,30 @@ function App() {
     else return '*';
   }
 
+  function downloadCanvas(options){
+    let string = '';
+    if(options.linebreaks){
+      string = addLineBreaksToText(asciiCanvasRef.current);
+    }
+    else{
+      string = asciiCanvasRef.current.data;
+    }
+    if(options.escaped){
+      string = escapeTextData(string);
+    }
+    if(options.asConst){
+      string = `//sketch ${asciiCanvasRef.current.width} x ${asciiCanvasRef.current.height}\nconst sketch = {\n\twidth:${asciiCanvasRef.current.width},\n\theight:${asciiCanvasRef.current.height},\n\tdata:'${string}'\n};`;
+    }
+    const blob = new Blob([string],{type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "sketch.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  }
+
   return (
     <>
     <div style = {aboutTextStyle}>
@@ -1931,6 +1955,13 @@ function App() {
           <div className = "ascii_button" onClick = {(e) => {copyText(asciiCanvasRef.current,{escaped:true,linebreaks:false})}}>{'*> as escaped code'}</div>
           {/* paste text to canvas from clipboard */}
           <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
+        </div>
+        <br></br>
+        <div className = "ui_header">*------- download -------*</div>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>as a...</div>
+        <div style = {{display:'flex',flexDirection:'column',marginLeft:'10px'}}>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:true,escaped:false,asConst:false})}}>plain .txt file</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:false,escaped:true,asConst:true})}}>javascript const(for reusing in code)</div>
         </div>
       </div>
       {/* scrollable box, holding the canvas+background+border elements */}

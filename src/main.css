@@ -1,16 +1,16 @@
 @font-face {
     font-family: 'Syne Mono';
-    src: url('SyneMono-Regular.ttf');
+    src: url('/SyneMono-Regular.ttf');
 }
 
 @font-face {
     font-family: 'Bytesized';
-    src: url('Bytesized-Regular.ttf');
+    src: url('/Bytesized-Regular.ttf');
 }
 
 @font-face {
     font-family: 'Workbench';
-    src: url('Workbench-Regular.ttf');
+    src: url('/Workbench-Regular.ttf');
 }
 
 html{
