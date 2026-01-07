@@ -6,7 +6,7 @@ import './main.css';
 import Dropdown from './components/dropdown';
 import NumberInput from './components/NumberInput.jsx';
 import AsciiPaletteInput from './components/asciipaletteinput';
-import { ascii_rose,ascii_title,aboutText } from './about';
+import { ascii_rose,ascii_title,ascii_rocket,aboutText } from './about';
 import { DropZone } from './components/DropZone';
 import { presets } from './presets';
 import AsciiButton from './components/AsciiButton.jsx'
@@ -28,6 +28,7 @@ function App() {
   const asciiCanvasRef = useRef(asciiCanvas);
   useEffect(() => {
     asciiCanvasRef.current = asciiCanvas;
+    calcViewWindow();
   },[asciiCanvas]);
 
   const [imageLayer,setImageLayer] = useState('');
@@ -80,7 +81,53 @@ function App() {
   const settingsRef = useRef(settings);
   useEffect(() => {
     settingsRef.current = settings;
+    calcViewWindow();
   },[settings]);
+
+  const [viewWindow,setViewWindow] = useState({
+    startX : 0,
+    startY : 0,
+    totalWidth : asciiCanvas.width,
+    totalHeight : asciiCanvas.height,
+    viewWidth : asciiCanvas.width,
+    viewHeight : asciiCanvas.height
+  });
+
+  function calcViewWindow(){
+    const container = document.getElementById('canvas-view-window');
+    const canvas = document.getElementById('main-canvas');
+
+    //total dimensions
+    let w = canvas.scrollWidth;
+    let h = canvas.scrollHeight;
+    const aR = canvas.scrollHeight/canvas.scrollWidth;
+    const maxDim = 150;
+    if(w > h){
+      w = maxDim;
+      h = aR * w;
+    }
+    else{
+      h = maxDim;
+      w = h / aR;
+    }
+    const scale = w / canvas.scrollWidth;
+
+    // view dimensions
+    const viewWidth = Math.min(container.clientWidth,canvas.clientWidth) * scale;
+    const viewHeight = Math.min(container.clientHeight,canvas.clientHeight) * scale;
+    
+    //view offset 
+    const viewOffset = {x:container.scrollLeft/container.scrollWidth * w,y:container.scrollTop/container.scrollHeight * h};
+
+    setViewWindow({
+      startX : viewOffset.x,
+      startY : viewOffset.y,
+      totalWidth : w,
+      totalHeight : h,
+      viewWidth : viewWidth,
+      viewHeight : viewHeight
+    });
+  }
 
   const [mouseCoords,setMouseCoords] = useState(null);
 
@@ -1485,8 +1532,8 @@ function App() {
     position:'absolute',
     left:'20px',
     top:'20px',
-    width:'fit-content',
-    height:'fit-content',
+    // width:'fit-content',
+    // height:'fit-content',
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
     whiteSpace: 'pre',
@@ -1495,11 +1542,13 @@ function App() {
 
   const pageContainerStyle = {
     position:'fixed',
-    top:'100px',
+    top:'200px',
     left:'350px',
     overflow:'scroll',
-    width:'calc(100% - 350px)',
-    height:'calc(100vh - 100px)',
+    right:'0px',
+    bottom:'0px',
+    // paddingRight:'50px',
+    // paddingBottom:'50px'
   }
 
   const canvasStyle = {
@@ -1511,6 +1560,7 @@ function App() {
     color:settings.textColor,
     backgroundColor:'transparent',
     width:'fit-content',
+    height:'fit-content',
     // width: asciiCanvas.width+'ch',
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
@@ -1785,15 +1835,20 @@ function App() {
       <div className = 'help_button' style = {{fontFamily:settings.font,textDecoration:'underline',cursor:'pointer',width:'fit-content',position:'fixed',top:'10px',right:'10px',backgroundColor:settings.showAbout?'blue':null,color:settings.showAbout?'white':null}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'about'}</div>
       {settings.showAbout && <div className = "about_text">{aboutText}</div>}
     </div>
+    <div style = {{display:'block',color:'blue',fontFamily:settings.font,position:'absolute',left:'-100px',top:'150px'}}>
+      <div style = {{transform:'rotate(90deg)'}}>{ascii_rose}</div>
+      <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+      <div style = {{transform:'rotate(90deg)'}}>{ascii_rocket}</div>
+    </div>
     <div className = "app_container" style ={{fontFamily:settings.font}}>
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_title}
-        {ascii_rose}
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {mouseCoords &&
           <div style = {{position:'absolute',right:'50px',top:'100px'}}>{`[${mouseCoords.x},${mouseCoords.y}]`}</div>
         }
+        
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
         <div style = {{display:'flex',gap:'10px'}}>
@@ -1871,6 +1926,13 @@ function App() {
         <br></br>
         <div className = "ui_header">*------- text -------*</div>
         <br></br>
+        {/* canvas view window visualizer */}
+          <div style = {{transition:'0.5s',opacity:mouseCoords?'100%':'0%',position:'fixed',right:'20px',top:'40px',zIndex:'-1',pointerEvents:'none'}}>
+            <div style = {{position:'relative',backgroundColor:settings.backgroundColor,display:'block',outline:'dashed 1px blue',width:`${viewWindow.totalWidth}px`,height:`${viewWindow.totalHeight}px`}}>
+              <div style = {{position:'absolute',backgroundColor:settings.textColor,width:`${viewWindow.viewWidth}px`,height:`${viewWindow.viewHeight}px`,top:`${viewWindow.startY}px`,left:`${viewWindow.startX}px`}}>
+              </div>
+            </div>
+          </div>
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>canvas dimensions</div>
         <div style = {{display:'flex'}}>
         <div style = {{marginLeft:'1ch'}} className = 'ui_header'>width:</div>
@@ -1965,7 +2027,7 @@ function App() {
         </div>
       </div>
       {/* scrollable box, holding the canvas+background+border elements */}
-      <div className = "page_container" style = {pageContainerStyle}>
+      <div className = "page_container" id = "canvas-view-window" onScroll = {(e) => {e.stopPropagation();calcViewWindow();}} style = {pageContainerStyle}>
         <div className = "canvas_container" style = {canvasContainerStyle}>
         {/* selection box */}
         {(selectionBox.started||selectionBox.finished) &&
@@ -1976,15 +2038,13 @@ function App() {
           <div className = "resize_preview_box" style = {resizePreviewStyle}/>
         }
         <div className = "highlight_box" style = {highlightBoxStyle}/>
-        <div className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}>
+        <div id = "main-canvas" className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}>
           {/* {addLineBreaksToText(asciiCanvas)} */}
           {renderCanvas()}
         </div>
-        {!settings.textSelectable && 
         <div className = "canvas_background" style = {backgroundStyle}>
           {addLineBreaksToText({data:createBackground({width:asciiCanvas.width,height:asciiCanvas.height}),width:asciiCanvas.width+2,height:asciiCanvas.height+2})}
         </div>
-        }
       </div>
       </div>
     </div>
