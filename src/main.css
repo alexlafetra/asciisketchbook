@@ -19,9 +19,12 @@ html{
     user-select : none;
     /* font-family: Syne Mono; */
 }
+body {
+  overflow-y: auto;
+}
 .app_container{
     position:absolute;
-    left:100px;
+    left:40px;
     top:0;
     display:grid;
     grid-template-columns: 300px;
@@ -77,6 +80,22 @@ html{
 }
 .ascii_button:hover{
     background-color:#ffff00ff;
+}
+#clear-canvas-button{
+    color:white;
+    background-color: red;
+}
+#clear-canvas-button:hover{
+    background-color: blue;
+}
+#commit-image-button{
+    color:white;
+    background-color: red;
+    animation: blinkBackground_red 0.5s infinite;
+}
+#commit-image-button:hover{
+    color:'white';
+    background-color: blue;
 }
 .control_label:hover{
     background-color:#ffff00ff;
@@ -221,11 +240,14 @@ html{
     from {background-color: #ffff00;border:dashed 1px #0000ff;}
     to {background-color: transparent;border:dashed 1px #ffff00;}
 }
-
+@keyframes blinkBackground_red {
+    from {background-color: #ff0000;}
+    to {background-color: #0000ff;}
+}
 
 
 .resize_preview_box{
-    animation: blinkBorder 0.25s infinite;
+    animation: blinkBorder 0.5s infinite;
 }
 /* file dropper */
 .drop-zone {

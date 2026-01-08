@@ -58,16 +58,19 @@ dddd    dddd>  Yrrr     uaaa    aaaa     wwwww  ;wwwww    @@@.   tttt     xxxx^x
 
 `}</div>
 export const aboutText = (
-    <>
+    <div style = {{padding:'10px'}}>
     {ascii_rose}
     <div style ={{width:'fit-content',margin:'auto'}}>+---------------------------------------------------+</div>
-    <div style = {{marginLeft:'10px',marginTop:'10px'}}>
-    This is a sketchbook designed for experimenting with monospace text.
-    Drawing/imagemaking is rendered through a string of raw HTML text, which can be copied from this sketchbook or pasted into it from other sources, or typed directly onto the canvas like using a typewriter.
-    It also supports an image rendering algorithm and some editing tools designed for weird, experimental ascii art imagemaking.
+    <div style = {{marginTop:'10px'}}>
+    <span style = {{backgroundColor:'blue',color:'white'}}>
+    This is a sketchbook designed for experimenting with monospace text, because it's all text anyway!!
+    This is a technical exploration of drawing/rendering using raw HTML text on a webpage, but also just a silly way of drawing and exploring the strange rulebreaking of ascii art.
+    Text can be copied from this sketchbook or pasted into it from other sources, or typed directly onto the canvas like using a typewriter.
+    The most developed feature of draw.txt is it's word-renderer, where images can be rendered using complete words.
+    </span>
     <br></br>
     <br></br>
-    <span style = {{marginLeft:'10px'}}>
+    <span style = {{backgroundColor:'blue',color:'white'}}>
     written by <a style = {keyboardShortcutStyle}href = "https://alexlafetra.github.io">alex lafetra</a> summer 2025
     </span>
     <br></br>
@@ -79,49 +82,83 @@ export const aboutText = (
     <div style ={{width:'fit-content',margin:'auto'}}>+---------------------------------------------------+</div>
     {ascii_rocket}
     <br></br>
-    <div style = {{marginLeft:"10px"}}>
+    <div>
+    <span style = {{backgroundColor:'blue',color:'white'}}>
     <span style = {keyboardShortcutStyle}>the basics</span><br></br>
     Typing text enters it into the canvas at the cursor location, which advances as you write. The cursor can also be moved by clicking around and the arrow keys.
     <br></br><br></br>
     Shift clicking+dragging will create a selection box, which can be filled with a character when typed or cut, copied, moved with the arrow keys, and dragged with the mouse. By default, whitespaces will be treated as "transparent" when moving or pasting text.
+    </span>
     </div>
     <br></br>
-    <div style = {{marginLeft:"10px"}}>
     <div style ={{width:'fit-content',margin:'auto'}}>+----------------------------------------+</div>
-    <span style = {keyboardShortcutStyle}>drawing</span><br></br>
-    </div>
-    <div style = {{marginLeft:"40px"}}>
-    The character drawn is the last character pressed, shown in the top left display box.<br></br><br></br>
-    <span style = {keyboardShortcutStyle}>Brush</span> ~ draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic' to draw lines that resize thickness based on the speed that they're drawn with.<br></br>
-    <span style = {keyboardShortcutStyle}>Lines</span> ~ draw straight lines by dragging the mouse.<br></br>
-    <span style = {keyboardShortcutStyle}>Stamp</span> ~ draw using a copied section of the canvas as a brush.<br></br>
-    <span style = {keyboardShortcutStyle}>Fill</span> ~ fill an area using the current character (like a 'bucket fill')<br></br>
-    <span style = {keyboardShortcutStyle}>Images</span> ~ render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.At first the image is drawn to a separate layer, but can be committed to the drawing and edited like normal text.
+    <span style = {{...keyboardShortcutStyle,backgroundColor:'blue'}}>tools</span><br></br>
+    <div style = {{
+      displaybackgroundColor:'blue',
+      color:'white',
+      marginLeft:"40px",
+      display:'grid',
+      gridTemplateColumns:'80px auto',
+      gridTemplateRows:'repeat(6,auto)',
+      gridTemplateAreas:`'description0 description0'
+                          'title1 description1'
+                          'title2 description2'
+                          'title3 description3'
+                          'title4 description4'
+                          'title5 description5'
+                          'title6 description6'`,
+      width:'400px',
+      gap:'10px'
+
+      }}>
+    <span style = {{gridArea:'description0',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>The character drawn is the last character pressed, shown in the top left display box.</span>
+    <span style = {keyboardShortcutStyle}>Brush ...</span><span style = {{gridArea:'description1',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>draw freehand lines by dragging the mouse. Brush thickness can be changed with the slider. Tick 'dynamic' to draw lines that resize thickness based on the speed that they're drawn with.</span>
+    <span style = {keyboardShortcutStyle}>Lines ...</span><span style = {{gridArea:'description2',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>draw straight lines by dragging the mouse.</span>
+    <span style = {keyboardShortcutStyle}>Stamp ...</span><span style = {{gridArea:'description3',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>draw using a copied section of the canvas as a brush.</span>
+    <span style = {keyboardShortcutStyle}>Fill ....</span><span style = {{gridArea:'description4',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>fill an area using the current character (like a 'bucket fill')</span>
+    <span style = {keyboardShortcutStyle}>Images ..</span><span style = {{gridArea:'description5',color:'white',backgroundColor:'blue',width:'fit-content',height:'fit-content'}}>render an image to the canvas with the 'render image' button, or by pasting an image from the clipboard. You can control image contrast, brightness, and the character pallette used to render the image.At first the image is drawn to a separate layer, but can be committed to the drawing and edited like normal text.</span>
     </div>
     <div style ={{width:'fit-content',margin:'auto'}}>+----------------------------------------+</div>
     <br></br>
-    <div style = {{marginLeft:"10px"}}>
-    <span style = {keyboardShortcutStyle}>shortcuts</span><br></br>
+    <div>
+    <span style = {{...keyboardShortcutStyle,backgroundColor:'blue'}}>keyboard shortcuts</span><br></br>
     </div>
-    <div style = {{marginLeft:"40px"}}>
-      <span style = {keyboardShortcutStyle}>Cmd+A</span>.....select all<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+Shift+A</span>.....deselect all<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+Z</span>.....undo<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+Shift+Z</span>.....redo<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+X</span>.....cut selected area<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+C</span>.....copy selected area<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+V</span>.....paste clipboard<br></br>
-      <span style = {keyboardShortcutStyle}>Cmd+Backspace or /</span>...clear Canvas<br></br>
-      <span style = {keyboardShortcutStyle}>Backspace</span>...delete character<br></br>
-      <span style = {keyboardShortcutStyle}>Arrow keys</span>...move cursor or translate selected text<br></br>
-      <span style = {keyboardShortcutStyle}>Arrow keys + Shift</span>...translate row/column<br></br>
-      <span style = {keyboardShortcutStyle}>Enter</span>...move cursor down a line<br></br>
-      <span style = {keyboardShortcutStyle}>Enter+Shift</span>...insert blank line<br></br>
+        <div style = {{
+      displaybackgroundColor:'blue',
+      color:'white',
+      marginLeft:"40px",
+      display:'grid',
+      gridTemplateColumns:'auto auto',
+      gridTemplateRows:'repeat(13,auto)',
+      gridTemplateAreas:`'description0 description0'
+                          'title1 description1'
+                          'title2 description2'
+                          'title3 description3'
+                          'title4 description4'
+                          'title5 description5'
+                          'title6 description6'`,
+      width:'300px',
+      gap:'10px'
+
+      }}>
+      <span style = {keyboardShortcutStyle}>Cmd+A .........</span><span style = {{color:'white',backgroundColor:'blue'}}>select all</span>
+      <span style = {keyboardShortcutStyle}>Cmd+Shift+A ...</span><span style = {{color:'white',backgroundColor:'blue'}}>deselect all</span>
+      <span style = {keyboardShortcutStyle}>Cmd+Z .........</span><span style = {{color:'white',backgroundColor:'blue'}}>undo</span>
+      <span style = {keyboardShortcutStyle}>Cmd+Shift+Z ...</span><span style = {{color:'white',backgroundColor:'blue'}}>redo</span>
+      <span style = {keyboardShortcutStyle}>Cmd+X .........</span><span style = {{color:'white',backgroundColor:'blue'}}>cut selected area</span>
+      <span style = {keyboardShortcutStyle}>Cmd+C .........</span><span style = {{color:'white',backgroundColor:'blue'}}>copy selected area</span>
+      <span style = {keyboardShortcutStyle}>Cmd+V .........</span><span style = {{color:'white',backgroundColor:'blue'}}>paste clipboard</span>
+      <span style = {keyboardShortcutStyle}>Cmd+Backspace .</span><span style = {{color:'white',backgroundColor:'blue'}}>clear Canvas</span>
+      <span style = {keyboardShortcutStyle}>Backspace .....</span><span style = {{color:'white',backgroundColor:'blue'}}>delete character</span>
+      <span style = {keyboardShortcutStyle}>Arrow keys ....</span><span style = {{color:'white',backgroundColor:'blue'}}>move cursor or translate selected text</span>
+      <span style = {keyboardShortcutStyle}>Arrow keys + <br></br>Shift .........</span><span style = {{color:'white',backgroundColor:'blue'}}>translate row/column</span>
+      <span style = {keyboardShortcutStyle}>Enter .........</span><span style = {{color:'white',backgroundColor:'blue'}}>move cursor down a line</span>
+      <span style = {keyboardShortcutStyle}>Enter+Shift ...</span><span style = {{color:'white',backgroundColor:'blue'}}>insert blank line</span>
     </div>
     {/* Understanding technology as a physical, human, inherently political resource--as opposed to the neutral, fingerprint-less identity most tech companies portray it as--limits our ability to conceptualize the labor, violence, and natural resources that go into producing, maintaining, and integrating ourselves with technology. */}
     <br></br>
     {/* Missile guidance systems are written with the same alphabet, the same text encoding, and stored in the same ascii format as what you create on this page. Abstracting technology from its physical reality is a strategy for depersonifying the people targeted by it, and alleviating the consequences for those who develop it. */}
     {/* <br></br> */}
     {/* {ascii_rose}                                                      */}
-    </>
+    </div>
   )
