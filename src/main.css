@@ -197,6 +197,16 @@ body {
     width:200px;
 }
 
+.border_input{
+    background:blue;
+    color:white;
+}
+
+.border_input:focus{
+    background:yellow;
+    color:blue;
+}
+
 .number_input{
     display:flex;
     font-family: inherit;

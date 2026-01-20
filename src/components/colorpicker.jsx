@@ -32,7 +32,7 @@ function ColorPicker({callback,defaultValue,backgroundColor,textColor}){
             {makePalette(32,8)}
         </div> */}
         <div className = "color_picker_container" style = {{position:'relative',cursor:'pointer',width:'200px',height:'fit-content'}}>
-        <div onClick = {(e) => {console.log('hey!');setActive(!active)}} style = {{position:'absolute',right:'0px',top:'0px',color:'white',backgroundColor:'blue'}}>{active?'[x]':'[ ]'}</div>
+        <div onClick = {(e) => {setActive(!active)}} style = {{position:'absolute',right:'0px',top:'0px',color:'white',backgroundColor:'blue'}}>{active?'[x]':'[ ]'}</div>
         <div style = {{display:'flex',alignItems:'center'}}>
         <div className = "control_label" onClick = {(e) => {console.log('hey2!');setActive(!active)}} style = {{color:'black',backgroundColor:active?'yellow':null}}>color palette</div>
         <div style = {{width:'10px',height:'10px',backgroundColor:textColor,margin:'0 6px'}}></div>

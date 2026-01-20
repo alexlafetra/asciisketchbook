@@ -63,10 +63,10 @@ export const aboutText = (
     <div style ={{width:'fit-content',margin:'auto'}}>+---------------------------------------------------+</div>
     <div style = {{marginTop:'10px'}}>
     <span style = {{backgroundColor:'blue',color:'white'}}>
-    This is a sketchbook designed for experimenting with monospace text, because it's all text anyway!!
-    This is a technical exploration of drawing/rendering using raw HTML text on a webpage, but also just a silly way of drawing and exploring the strange rulebreaking of ascii art.
+    This is a sketchbook designed for experimenting with monospace text, because it's all text anyway!! I originally wrote this page just as a simple drawing program to help me make ascii art, but it's since
+    developed into a technical exploration of drawing/rendering using raw HTML text on a webpage, but also just a way of exploring the strange rulebreaking of ascii art.
     Text can be copied from this sketchbook or pasted into it from other sources, or typed directly onto the canvas like using a typewriter.
-    The most developed feature of draw.txt is it's word-renderer, where images can be rendered using complete words.
+    The thing I'm working on now is a word-renderer, where images can be rendered using words to write visual poems.
     </span>
     <br></br>
     <br></br>
