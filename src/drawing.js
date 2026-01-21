@@ -91,6 +91,7 @@ export function drawCirclesAlongPath(A,B,radius,character,canvas){
         return drawLine({x:start.x,y:start.y},{x:end.x,y:end.y},character,canvas);
     }
 
+    //these could be made to be a lot faster! a better way would be to connect the edges of the start and end circles with lines
     //if it's a vertical line, don't use the line slope
     if(start.x == end.x){
         for(let step = start.y; step<end.y; step+=(radius/2)){
@@ -118,10 +119,10 @@ export function drawCirclesAlongPath(A,B,radius,character,canvas){
 
         //parametric eq calculating x,y at t*radius distance down the line
         for(let step = 0; step<stepCount; step++){
-        const t = step/stepCount;
-        const x = Math.trunc((1-t)*start.x + t*end.x);
-        const y = Math.trunc((1-t)*start.y + t*end.y);
-        canvas.data = fillCircle(x,y,radius,character,canvas);
+          const t = step/stepCount;
+          const x = Math.trunc((1-t)*start.x + t*end.x);
+          const y = Math.trunc((1-t)*start.y + t*end.y);
+          canvas.data = fillCircle(x,y,radius,character,canvas);
         }
         return canvas.data;
     }

@@ -999,6 +999,7 @@ function App() {
   }
 
   function clearCanvas(){
+    pushUndoState();
     let canvasData=``;
     canvasData = canvasData.padStart(debugCanvas.current.height*debugCanvas.current.width,' ');
     debugCanvas.current = {...debugCanvas.current,data:canvasData};
