@@ -41,7 +41,7 @@ function App() {
     endIndex : 0,
     char : 'a',
   });
-
+  
   const [currentChar,setCurrentChar] = useState('a');
   const currentCharRef = useRef(currentChar);
   useEffect(() => {
@@ -146,6 +146,11 @@ function App() {
     }
   },[imageRenderer]);
 
+  const [backgroundImage,setBackgroundImage] = useState({
+    imageSrc:null,
+    width:null,
+    height:null
+  });
   const [mouseCoords,setMouseCoords] = useState(null);
   const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
   const [viewWindow,setViewWindow] = useState({
@@ -1259,6 +1264,30 @@ function App() {
     }
   }
 
+  function loadBackgroundImage(files){
+    if(files.length === 1)
+      files = [files[0]];
+    const file = files[0];
+    //make sure there's a file here
+    if(!(file === undefined)){
+      //create a file reader object
+      const reader = new FileReader();
+      //attach a callback for when the FR is done opening the img
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = function(){
+          setBackgroundImage({
+            imageSrc:reader.result,
+            width:img.width,
+            height:img.height
+          });
+        }
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   function getBrushCanvas(size){
     if(size === 0){
       let canv = createBackground({width:1,height:1});
@@ -1622,6 +1651,14 @@ function App() {
     width:`calc(${debugCanvas.current.width+2}ch + ${(debugCanvas.current.width+1)*settings.textSpacing}px)`,
   };
 
+  const backgroundImageStyle = {
+    fontSize:settings.fontSize+'px',
+    width:`calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)`,
+    position:'absolute',
+    opacity:'0.6',
+    imageRendering:'pixelated'
+  }
+
   return (
     <>
     <div style = {aboutTextStyle}>
@@ -1638,6 +1675,9 @@ function App() {
     {/* scrollable box, holding the canvas+background+border elements */}
     <div className = "page_container" id = "canvas-view-window" onScroll = {(e) => {e.stopPropagation();setMinimap();}} style = {pageContainerStyle}>
       <div className = "canvas_container" style = {canvasContainerStyle}>
+      {backgroundImage.imageSrc && backgroundImage.shown && 
+        <img style = {backgroundImageStyle} src = {backgroundImage.imageSrc}></img>
+      }
       {/* selection box */}
       {(selectionBox.started||selectionBox.finished) &&
         <div className = "selection_box" style = {selectionBoxStyle}/>
@@ -1791,7 +1831,14 @@ function App() {
 
         <ColorPicker backgroundColor = {settings.backgroundColor} textColor = {settings.textColor} defaultValue = {{bg:settings.backgroundColor,fg:settings.textColor}} callback = {{bg:(val) => {setSettings({...settingsRef.current,backgroundColor:val})},fg:(val) => {setSettings({...settingsRef.current,textColor:val})}}}></ColorPicker>
         <br></br>
-      
+        <div style = {{display:'flex',gap:'1ch'}}>
+          <DropZone title = {`choose background image`} callback = {loadBackgroundImage}></DropZone>
+          <div onClick = {() => {setBackgroundImage({...backgroundImage,shown:!backgroundImage.shown})}} style = {{cursor:'pointer',color:backgroundImage.shown?'blue':'white',backgroundColor:backgroundImage.shown?'transparent':'blue'}}>{backgroundImage.shown?'hide':'show'}</div>
+        </div>
+        {backgroundImage.imageSrc &&
+          <img src = {backgroundImage.imageSrc} style = {{maxWidth:'200px'}}></img>
+        }
+        <br></br>
         <div className = "dropdown_container">
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>font</div>
         <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
@@ -1808,8 +1855,7 @@ function App() {
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
         <br></br>
         {/* drop zone */}
-        <div className = "ui_header">*------- image -------*</div>
-
+        <div className = "ui_header">*------- render image -------*</div>
         <br></br>
         <div style = {{display:'flex',width:'fit-content',alignItems:'center',flexDirection:'column'}}>
         {imageRenderer.imageLoaded &&
