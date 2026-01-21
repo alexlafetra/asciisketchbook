@@ -503,6 +503,7 @@ function App() {
     newString = newString.padEnd(newDims.width*newDims.height,' ');
     return newString;
   }
+
   function startLine(index){
     lineData.current = {
       ...lineData.current,
@@ -1393,7 +1394,7 @@ function App() {
         //if the user has already stored data in the clipboard from sketchbook
         //AND if the content on the clipboard matches the content the user last copied from the app,
         //use the clipboard dimensions (this SHOULD cut off the add newline characters)
-        if(clipDims !== undefined && clipboRef.current === text){
+        if(clipDims !== undefined && clipboardRef.current === text){
           dimensions = clipDims;
         }
         //if not, paste it into the selectionbox
@@ -1625,13 +1626,13 @@ function App() {
     <div style = {aboutTextStyle}>
       <div className = 'help_button' style = {{fontFamily:settings.font,textDecoration:'underline',cursor:'pointer',width:'fit-content',position:'fixed',top:'10px',right:'10px',backgroundColor:settings.showAbout?'blue':null,color:settings.showAbout?'white':null}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'about'}</div>
       {settings.showAbout && <div className = "about_text">{aboutText}</div>}
-      {!settings.showAbout && 
+      {/* {!settings.showAbout && 
       <div style = {{display:'block',color:'blue',fontFamily:settings.font,position:'fixed',right:'-100px',top:'200px',pointerEvents:'none'}}>
         <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_rose}</div>
         <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
         <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_rocket}</div>
       </div>
-      }
+      } */}
     </div>
     {/* scrollable box, holding the canvas+background+border elements */}
     <div className = "page_container" id = "canvas-view-window" onScroll = {(e) => {e.stopPropagation();setMinimap();}} style = {pageContainerStyle}>
@@ -1715,7 +1716,7 @@ function App() {
           <div className = 'help_text' style ={{color:'#ff0000'}}>selecting [{selectionBox.startCoord.x},{selectionBox.startCoord.y}],[{selectionBox.endCoord.x},{selectionBox.endCoord.y}]...</div>
         }
         {selectionBox.finished &&
-          <div className = 'help_text' style ={{color:'#ff0000'}}>(arrow keys to translate area)</div>
+          <div className = 'help_text' style ={{color:'#ff0000'}}>(click + drag to translate area)</div>
         }
         {(selectionBox.started || selectionBox.finished) && 
         <>
@@ -1733,8 +1734,11 @@ function App() {
                                                           }}>paste (cmd+v)</div>
         }
         {/* overlay white space */}
-        
-        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:!settingsRef.current.blendTransparentAreas})}} title = {'treat spaces like transparency'} state = {settings.blendTransparentAreas}></AsciiButton>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>spaces are...</div>
+        <div style = {{display:'flex',gap:'1ch'}}>
+          <div style = {{padding:'2px',cursor:'pointer',color:settings.blendTransparentAreas?'white':'blue',background:settings.blendTransparentAreas?'blue':'transparent'}} onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:true})}}>transparent</div>
+          <div style = {{padding:'2px',cursor:'pointer',color:settings.blendTransparentAreas?'blue':'white',background:settings.blendTransparentAreas?'transparent':'blue'}} onClick = {() => {setSettings({...settingsRef.current,blendTransparentAreas:false})}}>opaque</div>
+        </div>
         
         {/* canvas */}
         <br></br>
@@ -1797,6 +1801,7 @@ function App() {
             <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
         </select>
         </div>
+        <br></br>
         <Slider maxLength = {20} label = {'font size'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
         <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
         <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
@@ -1816,6 +1821,7 @@ function App() {
             imageLayer.current = '';
             setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null});}}>{'[commit to canvas]'}</div>
           <div className = "ascii_button" onClick = {(e) => {loadImageForRendering(imageRendererRef.current.imageSrc);}}>{'~rerender~'}</div>
+          <div className = "ascii_button" onClick = {(e) => {loadImageForRendering(imageRendererRef.current.imageSrc);}}>{`set canvas to same aspect ratio (${getCanvasDimensionsResizedToImage()})`}</div>
         </>
         }
         <DropZone title = {
