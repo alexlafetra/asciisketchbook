@@ -14,17 +14,19 @@ export function writeCharacterXY(x,y,char,canvas){
 }
 
 export function fill(x,y,fillColor,canv){
+    const tempChar = '\t';
+
     let newData = canv.data;
 
     //seed-checking fn that checks bounds and color to see if a pixel should be a new seed
     const isValid = (xi,yi,color) => {
-        return ((xi >= 0) && (xi < canv.width) && (yi >= 0) && (yi < canv.height) && (getCharFromString(xi,yi,newData,canv) === color));
+        return ((xi >= 0) && (xi < canv.width) && (yi >= 0) && (yi < canv.height) && getCharFromString(xi,yi,newData,canv) === color);
     }
 
     const scan = (lx, rx, y, stack, colorToBeFilled) => {
         for (let i = lx; i <= rx; i++) {
             if (isValid(i, y, colorToBeFilled)) {
-            stack.push({x: i, y: y, color: colorToBeFilled});
+              stack.push({x: i, y: y, color: colorToBeFilled});
             }
         }
         return stack;
@@ -33,7 +35,7 @@ export function fill(x,y,fillColor,canv){
     const colorToBeFilled = getCharFromString(x,y,newData,canv);
 
     if(!isValid(x,y,getCharFromString(x,y,newData,canv))){
-        return newData;
+      return newData;
     }
 
     if (colorToBeFilled === fillColor) return newData;
@@ -46,20 +48,35 @@ export function fill(x,y,fillColor,canv){
         //left fill
         let lx = seed.x;
         while (isValid(lx, seed.y, seed.color)) {
-            newData = writeCharacterXY(lx,seed.y,fillColor,{...canv,data:newData});
-            lx = lx -1;
+          newData = writeCharacterXY(lx,seed.y,fillColor.data?tempChar:fillColor,{...canv,data:newData});
+          lx = lx -1;
         }
 
         //right fill
         let rx = seed.x + 1;
         while (isValid(rx, seed.y, seed.color)) {
-            newData = writeCharacterXY(rx,seed.y,fillColor,{...canv,data:newData});
-            rx = rx + 1;
+          newData = writeCharacterXY(rx,seed.y,fillColor.data?tempChar:fillColor,{...canv,data:newData});
+          rx = rx + 1;
         }
 
         //scan up/down
         stack = scan(lx+1, rx-1, seed.y + 1, stack, seed.color);
         stack = scan(lx+1, rx-1, seed.y - 1, stack, seed.color)
+    }
+    //if it's a pattern fill, switch out the temp chars!
+    if(fillColor.data){
+      let tempData = newData;
+      for(let i = 0; i<tempData.length; i++){
+        if(tempData.charAt(i) === tempChar){
+          const coords = {
+            x: i % canv.width,
+            y: Math.trunc(i / canv.width)
+          };
+          const char = fillColor.data.charAt(coords.x%fillColor.width + (coords.y%fillColor.height) * fillColor.width);
+          tempData = writeCharacterXY(coords.x,coords.y,char,{...canv,data:tempData});
+        }
+      }
+      newData = tempData;
     }
     return newData;
 }
@@ -88,7 +105,7 @@ export function drawCirclesAlongPath(A,B,radius,character,canvas){
     // radius = 0;
     //if radius is 0, just draw a line
     if(radius == 0){
-        return drawLine({x:start.x,y:start.y},{x:end.x,y:end.y},character,canvas);
+      return drawLine(0,{x:start.x,y:start.y},{x:end.x,y:end.y},character,canvas);
     }
 
     //these could be made to be a lot faster! a better way would be to connect the edges of the start and end circles with lines
@@ -181,7 +198,52 @@ export function fillCircle(x0,y0,r,c,canvas){
     return canvas.data;
   }
 
-export function drawLine(start,end,char,canvas){
+export function drawLine(size,start,end,char,canvas){
+    if(size>0){
+        //slope
+        let m = (end.y - start.y)/(end.x - start.x);
+        
+        /*
+        there are 8 line possibilities! 
+        ____
+        /    \
+      |      |
+        \____/
+
+        
+        */
+      //vertical line
+      if(m == Infinity){
+        for(let i = -Math.trunc(size/2); i<Math.trunc(size/2); i++){
+          canvas.data = drawLine(0,{x:start.x - i,y:start.y},{x:end.x - i,y:end.y},char,canvas);
+        }
+      }
+      //horizontal line
+      else if(m == 0){
+        for(let i = -Math.trunc(size/2); i<Math.trunc(size/2); i++){
+          canvas.data = drawLine(0,{x:start.x ,y:start.y-i},{x:end.x,y:end.y-i},char,canvas);
+        }
+      }
+      //slope down
+      else if(m < 0){
+        const newSlope = -1/m;
+        for(let i = -Math.trunc(size/2); i<Math.trunc(size/2); i++){
+          canvas.data = drawLine(0,{x:start.x+newSlope*i ,y:start.y+newSlope*i},{x:end.x+newSlope*i,y:end.y+newSlope*i},char,canvas);
+        }
+      }
+      //slope up
+      else{
+        //to the right
+        if(end.x > start.x){
+
+        }
+        //to the left
+        else{
+
+        }
+      }
+    }
+
     const steep = Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
     if (steep) {
       [start.x, start.y] = [start.y,start.x];
@@ -220,3 +282,34 @@ export function drawLine(start,end,char,canvas){
     }
     return canvas.data;
   }
+
+export function drawBox(start,end,characters,canvas){
+  const topL = {x:Math.min(Math.min(start.x,end.x),canvas.width),y:Math.min(Math.min(end.y,start.y),canvas.height)};
+  const bottomR = {x:Math.min(Math.max(start.x,end.x),canvas.width),y:Math.min(Math.max(end.y,start.y),canvas.height)};
+  const w = bottomR.x - topL.x;
+  const h = bottomR.y - topL.y;
+  if(!w || !h)
+    return canvas.data;
+  if(characters.topL != '')
+    canvas.data = writeCharacterXY(topL.x,topL.y,characters.topL,canvas);
+  if(characters.top != '')
+    canvas.data = drawLine(0,{x:topL.x+1,y:topL.y},{x:topL.x+w-1,y:topL.y},characters.top,canvas);
+  if(characters.topR != '') 
+    canvas.data = writeCharacterXY(topL.x+w,topL.y,characters.topR,canvas);
+  if(characters.sideL != '') 
+    canvas.data = drawFastVLine(topL.x,topL.y+1,h-1,characters.sideL,canvas);
+  if(characters.sideR != '') 
+    canvas.data = drawFastVLine(topL.x+w,topL.y+1,h-1,characters.sideR,canvas);
+  if(characters.bottomL != '') 
+    canvas.data = writeCharacterXY(topL.x,topL.y+h,characters.bottomL,canvas);
+  if(characters.bottom != '') 
+    canvas.data = drawLine(0,{x:topL.x+1,y:topL.y+h},{x:topL.x+w-1,y:topL.y+h},characters.bottom,canvas);
+  if(characters.bottomR != '') 
+    canvas.data = writeCharacterXY(topL.x+w,topL.y+h,characters.bottomR,canvas);
+  if(characters.fill != ''){
+    for(let x = topL.x+1; x<bottomR.x; x++){
+      canvas.data = drawFastVLine(x,topL.y+1,h-1,characters.fill,canvas);
+    }
+  }
+  return canvas.data;
+}

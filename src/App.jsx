@@ -5,11 +5,11 @@ import './main.css';
 import Dropdown from './components/dropdown';
 import NumberInput from './components/NumberInput.jsx';
 import AsciiPaletteInput from './components/asciipaletteinput';
-import { ascii_rose,ascii_title,ascii_rocket,aboutText } from './about';
+import { ascii_rose,ascii_wire,ascii_title,ascii_rocket,aboutText } from './about';
 import { DropZone } from './components/DropZone';
 import { presets } from './presets';
 import AsciiButton from './components/AsciiButton.jsx'
-import {fill, writeCharacter, writeCharacterXY, drawCirclesAlongPath, drawFastVLine, fillCircle, fillCircleHelper, drawLine} from './drawing.js'
+import {fill, writeCharacter, writeCharacterXY, drawCirclesAlongPath, drawFastVLine, fillCircle, fillCircleHelper, drawLine, drawBox} from './drawing.js'
 
 function App() {
   const asciiPalettePresets = {
@@ -29,19 +29,23 @@ function App() {
     document.getElementById('main-canvas').innerText = renderCanvas(canvas);
   }
 
-  const imageLayer = useRef('');
-    const brushData = useRef({
+  const imageLayer = useRef({
+    data:'',
+    width:undefined,
+    height:undefined
+  });
+  const brushData = useRef({
     drawing:false,
     lastCoordinate:undefined
   });
-  const lineData = useRef({
+  const shapeData = useRef({
+    type : 'line',
     begun : false,
     moved : false,
     startIndex : 0,
     endIndex : 0,
-    char : 'a',
   });
-  
+
   const [currentChar,setCurrentChar] = useState('a');
   const currentCharRef = useRef(currentChar);
   useEffect(() => {
@@ -62,8 +66,12 @@ function App() {
 
   const fontOptions = [
     {
-      title:'Any monospace font',
-      cssName:'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      title:'default monospace',
+      cssName:'monospace',
+    },
+    {
+      title:'Courier New',
+      cssName:'Courier New',
     },
     {
       title:'Syne Mono',
@@ -96,7 +104,21 @@ function App() {
     useDynamicBrush:false,
     font:fontOptions[0].cssName,
     fillLineByDirection:false,
-    brushSize : 0
+    brushSize : 1,
+    drawFromClipboard : false,
+    shapeType:'line',
+    boxCharacters:{
+      topL:'*',
+      top:'-',
+      topR:'*',
+      sideL:'|',
+      fill:'',
+      sideR:'|',
+      bottomL:'*',
+      bottom:'-',
+      bottomR:'*'
+    },
+    showCrosshairs:false
   });
 
   const settingsRef = useRef(settings);
@@ -128,6 +150,9 @@ function App() {
   const [imageRenderer,setImageRenderer] = useState(
     {
       imageLoaded:false,
+      width:0,
+      height:0,
+      fit: 'fill',
       gamma:1.0,
       contrast:1.0,
       imageSrc:null,
@@ -149,7 +174,10 @@ function App() {
   const [backgroundImage,setBackgroundImage] = useState({
     imageSrc:null,
     width:null,
-    height:null
+    height:null,
+    shown:true,
+    fit: 'width',
+    opacity: 0.8
   });
   const [mouseCoords,setMouseCoords] = useState(null);
   const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
@@ -335,8 +363,29 @@ function App() {
 
   function renderImageAsAscii(img){
     
-    const outputDimensions = {width:debugCanvas.current.width,height:debugCanvas.current.height};
+    const fit = imageRendererRef.current.fit;
+
+    let width,height;
+    if(fit == 'fill'){
+      width = debugCanvas.current.width;
+      height = debugCanvas.current.height;
+    }
+    else if(fit == 'width'){
+      width = debugCanvas.current.width;
+      height = Math.round(width * img.height/img.width);
+    }
+    else if(fit == 'height'){
+      height = debugCanvas.current.height;
+      width = Math.round(height * img.width/img.height);
+    }
+
+    const outputDimensions = {
+      width:width,
+      height:height
+    };
+
     const palette = imageRenderer.asciiPalette;
+
     // prepare wordlist
     let wordList = [];
     if(imageRenderer.technique == 'words'){
@@ -348,14 +397,14 @@ function App() {
       if(!wordList || wordList.length == 0){
         let warningString = '[no word palette to raster with!]';
         warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
-        imageLayer.current = warningString;
+        imageLayer.current = {data:warningString,...outputDimensions};
         return;
       }
     }
     else if(palette.length == 0){
       let warningString = '[no character palette to raster with!]';
       warningString = warningString.padEnd(outputDimensions.width*outputDimensions.height,' ');
-      imageLayer.current = warningString;
+      imageLayer.current = {data:warningString,...outputDimensions};
       return;
     }
 
@@ -431,14 +480,13 @@ function App() {
         }
       }
     }
-    imageLayer.current = newStr;
+    imageLayer.current = {...outputDimensions,data:newStr};
   };
 
   function loadImageForRendering(src){
     if(typeof src === "string"){
       const img = new Image;
       img.onload = function() {
-        pushUndoState();
         renderImageAsAscii(this);
         updateCanvas();
         delete this;
@@ -449,9 +497,12 @@ function App() {
   function overlayImageOnCanvas(){
     let canvasString = '';
     for(let ch = 0; ch < debugCanvas.current.data.length; ch++){
+      const coords = {x : ch%debugCanvas.current.width, y : Math.trunc(ch / debugCanvas.current.width)};
       const char = debugCanvas.current.data.charAt(ch);
-      if(char === ' ' && ch < imageLayer.current.length){
-        canvasString += imageLayer.current.charAt(ch);
+      if(char === ' ' && coords.x < imageLayer.current.width && coords.y < imageLayer.current.height){
+        const imageLayerIndex = coords.x + coords.y * imageLayer.current.width;
+        if(imageLayerIndex < imageLayer.current.data.length)
+          canvasString += imageLayer.current.data.charAt(imageLayerIndex);
       }
       else{
         canvasString += char;
@@ -465,7 +516,7 @@ function App() {
       canvas = debugCanvas.current;
     let canvasString = '';
     //if there's an image, overlay the canvas on top of it
-    if(imageLayer.current){
+    if(imageLayer.current.data && imageRendererRef.current.imageLoaded){
       canvasString = overlayImageOnCanvas();
     }
     else{
@@ -509,30 +560,37 @@ function App() {
     return newString;
   }
 
-  function startLine(index){
-    lineData.current = {
-      ...lineData.current,
+  function startShape(index){
+    shapeData.current = {
+      ...shapeData.current,
       begun : true,
       moved : false,
       startIndex : index,
       endIndex : null,
-      char : currentChar
     }
     //store a copy of div contents in buffer canvas, so you can draw arbitrary lines on top of canvas w/o loosing anything
     bufferCanvas.current = {...debugCanvas.current};
   }
-  function endLine(endIndex){
-    const start = {x:lineData.current.startIndex%debugCanvas.current.width,y:Math.trunc(lineData.current.startIndex/debugCanvas.current.width)};
+
+  function endShape(endIndex){
+    const start = {x:shapeData.current.startIndex%debugCanvas.current.width,y:Math.trunc(shapeData.current.startIndex/debugCanvas.current.width)};
     const end = {x:endIndex%debugCanvas.current.width,y:Math.trunc(endIndex/debugCanvas.current.width)};
     const char = settingsRef.current.fillLineByDirection?getLineDirectionalChar(start,end):currentChar;
-    lineData.current = {
-      ...lineData.current,
+    shapeData.current = {
+      ...shapeData.current,
       begun : false,
       moved : false,
       endIndex : endIndex,
-      char : char
     };
-    let temp = drawLine(start,end,char,{...bufferCanvas.current});
+    let temp;
+    switch(shapeData.current.type){
+      case 'line':
+        temp = drawLine(settingsRef.current.brushSize,start,end,char,{...bufferCanvas.current});
+        break;
+      case 'box':
+        temp = drawBox(start,end,settingsRef.current.boxCharacters,{...bufferCanvas.current});
+        break;
+    }
     debugCanvas.current = {...debugCanvas.current,data:temp};
     bufferCanvas.current = {...debugCanvas.current};
     updateCanvas();
@@ -580,32 +638,43 @@ function App() {
     setMouseCoords(null);
   }
 
+  function getSelectionBoxEndCoords(e,startCoord){
+    if(!startCoord)
+      startCoord = selectionBoxRef.current.startCoord;
+    let coords = getClickCoords(e);
+    const w = coords.x - startCoord.x;
+    const h = coords.y - startCoord.y;
+    if(Math.abs(w) < 1)
+      coords.x = startCoord.x+((w<0)?-1:1);
+    if(Math.abs(h) < 1)
+      coords.y = startCoord.y+((h<0)?-1:1);
+    return {x:Math.round(coords.x),y:Math.round(coords.y)};
+  }
+
   function handleMouseUp(e){
 
     //set the cursor on the index where the mouse was released
     setActiveCharIndex(getClickIndex(e));
 
     switch(settings.drawingMode){
-      case 'line':
+      case 'shape':
         const newIndex = getClickIndex(e);
-        //if you already started a line
-        if(lineData.current.begun){
-          if(lineData.current.moved){
-            endLine(newIndex);
+        //if you already started a shape
+        if(shapeData.current.begun){
+          if(shapeData.current.moved){
+            endShape(newIndex);
           }
           else{
-            lineData.current = {
-              ...lineData.current,
+            shapeData.current = {
+              ...shapeData.current,
               begun : false,
               moved : false,
-              startIndex : lineData.current.startIndex,
+              startIndex : shapeData.current.startIndex,
               endIndex : null,
-              char : currentChar
             };
           }
         }
         break;
-      case 'stamp':
       case 'brush':
         brushData.current = {
           drawing:false,
@@ -615,11 +684,10 @@ function App() {
     }
     //changing the selectionbox
     if(selectionBox.started){
-      const newBox = {
+      const newBox = {...selectionBoxRef.current,
         started : false,
         finished : true,
-        startCoord : selectionBox.startCoord,
-        endCoord : getRoundedClickCoords(e),
+        endCoord : {...getSelectionBoxEndCoords(e)},
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -669,11 +737,12 @@ function App() {
     }
     //starting selectionbox
     if(e.shiftKey && !settingsRef.current.textSelectable){
+      const coords = getTruncatedClickCoords(e);
       const newBox = {
         started : true,
         finished : false,
-        startCoord : getRoundedClickCoords(e),
-        endCoord : getRoundedClickCoords(e),
+        startCoord : {...coords},
+        endCoord : {...getSelectionBoxEndCoords(e,coords)},
         movingText : false,
         moveBy : {x:0,y:0}
       };
@@ -686,30 +755,40 @@ function App() {
       const coords = getTruncatedClickCoords(e);
       pushUndoState();
       switch(settings.drawingMode){
-        case 'line':
+        case 'shape':
           //start drawing a line
-          startLine(newIndex);
+          startShape(newIndex);
           break;
         case 'brush':
-          // don't draw a character yet, until the mouse is moved
-          brushData.current = {
-            drawing:true,
-            lastCoordinate:coords
-          };
-          break;
-        case 'stamp':
-          if(clipboard){
+          if(settingsRef.current.drawFromClipboard){
+            if(clipboardRef.current){
+              brushData.current = {
+                drawing:true,
+                lastCoordinate:coords
+              };
+              const location = {x:Math.round(coords.x-clipboardRef.current.width/2),y:Math.round(coords.y-clipboardRef.current.height/2)};
+              debugCanvas.current = {...debugCanvas.current,data:pasteText(clipboardRef.current.data,clipboardRef.current,location,debugCanvas.current)};
+              updateCanvas();
+            }
+          }
+          else{
+            // don't draw a character yet, until the mouse is moved
             brushData.current = {
               drawing:true,
               lastCoordinate:coords
             };
-            const location = {x:Math.round(coords.x-clipboardRef.current.width/2),y:Math.round(coords.y-clipboardRef.current.height/2)};
-            debugCanvas.current = {...debugCanvas.current,data:pasteText(clipboardRef.current.data,clipboardRef.current,location,debugCanvas.current)};
-            updateCanvas();
           }
           break;
         case 'fill':
-          debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,currentCharRef.current,debugCanvas.current)};
+          //pattern fill
+          if(settingsRef.current.drawFromClipboard){
+            if(clipboardRef.current)
+              debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,clipboardRef.current,debugCanvas.current)};
+          }
+          //normal fill
+          else{
+            debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,currentCharRef.current,debugCanvas.current)};
+          }
           updateCanvas();
           break;
       }
@@ -731,61 +810,79 @@ function App() {
     const coords = getTruncatedClickCoords(e);
     setMouseCoords({...coords});
     switch(settings.drawingMode){
-      case 'stamp':
-        if(brushData.current.drawing){
-          const location = {x:Math.round(coords.x-clipboardRef.current.width/2),y:Math.round(coords.y-clipboardRef.current.height/2)};
-          debugCanvas.current = {...debugCanvas.current,data:pasteText(clipboardRef.current.data,clipboardRef.current,location,debugCanvas.current)};
-          updateCanvas();
-        }
-        break;
-      case 'line':
+      case 'shape':
         //changing line position
-        if(lineData.current.begun){
+        if(shapeData.current.begun){
           //if the index didn't change, you haven't moved
-          if(newIndex === lineData.current.startIndex){
+          if(newIndex === shapeData.current.startIndex){
             return;
           }
-          const start = {x:lineData.current.startIndex%debugCanvas.current.width,y:Math.trunc(lineData.current.startIndex/debugCanvas.current.width)};          
-          lineData.current = {
-            ...lineData.current,
+          const start = {x:shapeData.current.startIndex%debugCanvas.current.width,y:Math.trunc(shapeData.current.startIndex/debugCanvas.current.width)};          
+          shapeData.current = {
+            ...shapeData.current,
             begun : true,
             moved : true,
             endIndex : newIndex,
-            char : currentChar
           };
-          debugCanvas.current = {...debugCanvas.current,data:drawLine(start,coords,settingsRef.current.fillLineByDirection?getLineDirectionalChar(start,coords):currentChar,{...bufferCanvas.current})};
+          let temp;
+          switch(shapeData.current.type){
+            case 'line':
+              temp = drawLine(settingsRef.current.brushSize,start,coords,settingsRef.current.fillLineByDirection?getLineDirectionalChar(start,coords):currentChar,{...bufferCanvas.current});
+              break;
+            case 'box':
+              temp = drawBox(start,coords,settingsRef.current.boxCharacters,{...bufferCanvas.current});
+              break;
+          }
+          debugCanvas.current = {...debugCanvas.current,data:temp};
           updateCanvas();
         }
         break;
       case 'brush':
         if(brushData.current.drawing){
-          let brushSize = settingsRef.current.brushSize;
-          if(brushData.current.lastCoordinate !== undefined && settingsRef.current.useDynamicBrush){
-            const distX = brushData.current.lastCoordinate.x - coords.x;
-            const distY = brushData.current.lastCoordinate.y - coords.y;
-            //usually, dist is between 1 and 2
-            const distance = Math.sqrt((distX*distX)+(distY*distY));
-            //map distance to a thickness (from 0, brushSize)
-            brushSize = Math.max(Math.trunc(map_range(distance,0,20,brushSize,0)),0);
-          }
-          //if there's no other coordinate, just fill circles
-          if(brushData.current.lastCoordinate === undefined){
-            debugCanvas.current = {...debugCanvas.current,data:fillCircle(coords.x,coords.y,brushSize,currentChar,debugCanvas.current)};
-            updateCanvas();
+          if(settingsRef.current.drawFromClipboard){
+            if(clipboardRef.current){
+              const location = {x:Math.round(coords.x-clipboardRef.current.width/2),y:Math.round(coords.y-clipboardRef.current.height/2)};
+              debugCanvas.current = {...debugCanvas.current,data:pasteText(clipboardRef.current.data,clipboardRef.current,location,debugCanvas.current)};
+              updateCanvas();
+            }
           }
           else{
-            debugCanvas.current = {...debugCanvas.current,data:drawCirclesAlongPath({x:brushData.current.lastCoordinate.x,y:brushData.current.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize,currentChar,debugCanvas.current)};
-            updateCanvas();
+            let brushSize = settingsRef.current.brushSize;
+            if(brushData.current.lastCoordinate !== undefined && settingsRef.current.useDynamicBrush){
+              const distX = brushData.current.lastCoordinate.x - coords.x;
+              const distY = brushData.current.lastCoordinate.y - coords.y;
+              //usually, dist is between 1 and 2
+              const distance = Math.sqrt((distX*distX)+(distY*distY));
+              //map distance to a thickness (from 0, brushSize)
+              brushSize = Math.max(Math.trunc(map_range(distance,0,20,brushSize,1)),0);
+            }
+            //if there's no other coordinate, just fill circles
+            if(brushData.current.lastCoordinate === undefined){
+              debugCanvas.current = {...debugCanvas.current,data:fillCircle(coords.x,coords.y,brushSize-1,currentChar,debugCanvas.current)};
+              updateCanvas();
+            }
+            else{
+              debugCanvas.current = {...debugCanvas.current,data:drawCirclesAlongPath({x:brushData.current.lastCoordinate.x,y:brushData.current.lastCoordinate.y},{x:coords.x,y:coords.y},brushSize-1,currentChar,debugCanvas.current)};
+              updateCanvas();
+            }
+            brushData.current = {
+              drawing:true,
+              lastCoordinate:coords
+            };
           }
-          brushData.current = {
-            drawing:true,
-            lastCoordinate:coords
-          };
         }
         break;
       case 'fill':
-        if(e.buttons){
-          debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,currentCharRef.current,debugCanvas.current)};
+        if(e.buttons && !e.shiftKey){
+          //pattern fill
+          if(settingsRef.current.drawFromClipboard){
+            if(clipboardRef.current)
+              debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,clipboardRef.current,debugCanvas.current)};
+          }
+          //normal fill
+          else{
+            debugCanvas.current = {...debugCanvas.current,data:fill(coords.x,coords.y,currentCharRef.current,debugCanvas.current)};
+          }
           updateCanvas();
         }
         break;
@@ -795,13 +892,11 @@ function App() {
       let newBox;
       //extend selbox
       if(e.shiftKey){
-        newBox = {
+        newBox = {...selectionBoxRef.current,
           started : true,
           finished : false,
-          startCoord : selectionBox.startCoord,
-          endCoord : getRoundedClickCoords(e),
+          endCoord : {...getSelectionBoxEndCoords(e)},
           movingText : false,
-          moveBy : {x:selectionBox.moveBy.x,y:selectionBox.moveBy.y}
         };
       }
       //cancel it
@@ -1036,7 +1131,7 @@ function App() {
     const index = activeCharIndexRef.current;
     const activeChar = currentCharRef.current;
     let textData = debugCanvas.current.data;
-    const line = lineData.current;
+    const line = shapeData.current;
     const bufCanvas = bufferCanvas.current;
     const selection = selectionBoxRef.current;
     const canvDims = debugCanvas.current;
@@ -1100,8 +1195,9 @@ function App() {
 
       }
       switch(settingsRef.current.drawingMode){
-        case 'stamp':
-        case 'brush':
+        case 'type':
+        // case 'stamp':
+        // case 'brush':
           pushUndoState();
           //write the character
           debugCanvas.current = {...debugCanvas.current,data:writeCharacter(index,e.key,debugCanvas.current)};
@@ -1110,20 +1206,25 @@ function App() {
             setActiveCharIndex(index+1);
           }
           break;
-        case 'line':
+        case 'shape':
           //if you are drawing a line, redraw it with the new character
           if(line.moved){
             const startCoords = {x:line.startIndex%canvDims.width,y:Math.trunc(line.startIndex/canvDims.width)};
             const endCoords = {x:line.endIndex%canvDims.width,y:Math.trunc(line.endIndex/canvDims.width)};
-            lineData.current = {
+            shapeData.current = {
+              ...shapeData.current,
               begun : true,
               moved : true,
               startIndex : line.startIndex,
               endIndex : line.endIndex,
-              char : e.key
             };
-            const tempCanvas  = drawLine(startCoords,endCoords,e.key,{...bufCanvas});
-            debugCanvas.current = {...debugCanvas.current,data:tempCanvas};
+            let temp;
+            switch(shapeData.current.type){
+              case 'line':
+                temp = drawLine(settingsRef.current.brushSize,startCoords,endCoords,e.key,{...bufCanvas});
+                break;
+            }
+            debugCanvas.current = {...debugCanvas.current,data:temp};
             updateCanvas();
           }
           break;
@@ -1277,9 +1378,11 @@ function App() {
         const img = new Image();
         img.onload = function(){
           setBackgroundImage({
+            ...backgroundImage,
             imageSrc:reader.result,
             width:img.width,
-            height:img.height
+            height:img.height,
+            shown:true
           });
         }
         img.src = reader.result;
@@ -1307,7 +1410,7 @@ function App() {
     const maxHeight = 16;
     let canv = {height:clipboard.height+2,width:clipboard.width+2,data:createBackground(clipboard)};
     canv.data = pasteText(clipboard.data,clipboard,{x:1,y:1},canv);
-    // console.log(clipboard);
+
     if(canv.width > maxWidth){
       const startOffset = Math.ceil(maxWidth/2);
       const endOffset = Math.floor(maxWidth/2);
@@ -1573,18 +1676,6 @@ function App() {
     fontFamily: settings.font,
   }
 
-  const highlightBoxStyle = {
-    visibility:settings.textSelectable?'hidden':'visible',
-    width:'1ch',
-    height: settings.lineHeight+'em',
-    left: `calc(${activeCharIndex%debugCanvas.current.width - 0.1}ch + ${settings.textSpacing*(activeCharIndex%debugCanvas.current.width)}px)`,
-    top: `${Math.trunc(activeCharIndex/debugCanvas.current.width)*settings.lineHeight}em`,
-    lineHeight:settings.lineHeight,
-    fontSize:settings.fontSize+'px',
-    position:'absolute',
-    animation: 'blinkBackground 1s infinite'
-  };
-
   function getHighlightBoxStyle(index){
     return {
       visibility:settings.textSelectable?'hidden':'visible',
@@ -1594,7 +1685,8 @@ function App() {
       top: `${Math.trunc(index/debugCanvas.current.width)*settings.lineHeight}em`,
       lineHeight:settings.lineHeight,
       fontSize:settings.fontSize+'px',
-      position:'absolute'
+      position:'absolute',
+      zIndex:'1'
     };
   }
 
@@ -1651,12 +1743,42 @@ function App() {
     width:`calc(${debugCanvas.current.width+2}ch + ${(debugCanvas.current.width+1)*settings.textSpacing}px)`,
   };
 
-  const backgroundImageStyle = {
-    fontSize:settings.fontSize+'px',
-    width:`calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)`,
-    position:'absolute',
-    opacity:'0.6',
-    imageRendering:'pixelated'
+  const Crosshairs = function(){
+    const common = {
+      lineHeight:settings.lineHeight,
+      fontSize:settings.fontSize+'px',
+      position:'absolute',
+      background:'#ffdd009d',
+      zIndex:'0'
+    }
+    const index = mouseCoords.x + mouseCoords.y * debugCanvas.current.width;
+    const leftOffset = `calc(${index%debugCanvas.current.width}ch + ${settings.textSpacing*(index%debugCanvas.current.width)}px)`;
+    const leftOffset2 = `calc(${(index+1)%debugCanvas.current.width}ch + ${settings.textSpacing*((index+1)%debugCanvas.current.width)}px)`;
+    const topOffset = `${Math.trunc(index/debugCanvas.current.width)*settings.lineHeight}em`;
+    const topOffset2 = `${Math.trunc((index+1)/debugCanvas.current.width)*settings.lineHeight}em`;
+    return(
+      <>
+      {/* horizontal */}
+      <div style = {{...common,top:topOffset,left:'0ch',right:'0ch',height:'1em'}}></div>
+      {/* vertical */}
+      <div style = {{...common,top:'0em',left:leftOffset,width:'1ch',bottom:'0em'}}></div>
+      </>
+    )
+  }
+
+  function getBackgroundImageStyle(){
+    const dimensions = {
+      width : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'width') ? `calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)` : undefined,
+      height : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'height') ? `${(debugCanvas.current.height)*settings.lineHeight}em` : undefined,
+    }
+    return({
+      ...dimensions,
+      fontSize:settings.fontSize+'px',
+      lineHeight:settings.lineHeight,
+      opacity:backgroundImage.opacity,
+      imageRendering:'pixelated',
+      display:'block'
+    })
   }
 
   return (
@@ -1676,7 +1798,9 @@ function App() {
     <div className = "page_container" id = "canvas-view-window" onScroll = {(e) => {e.stopPropagation();setMinimap();}} style = {pageContainerStyle}>
       <div className = "canvas_container" style = {canvasContainerStyle}>
       {backgroundImage.imageSrc && backgroundImage.shown && 
-        <img style = {backgroundImageStyle} src = {backgroundImage.imageSrc}></img>
+        <div style = {{position:'absolute',overflow:'clip',display:'block',fontSize:settings.fontSize+'px',lineHeight:settings.lineHeight,width:`calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)`,height:`${(debugCanvas.current.height)*settings.lineHeight}em`}}>
+          <img style = {getBackgroundImageStyle()} src = {backgroundImage.imageSrc}></img>
+        </div>
       }
       {/* selection box */}
       {(selectionBox.started||selectionBox.finished) &&
@@ -1687,10 +1811,15 @@ function App() {
         <div className = "resize_preview_box" style = {resizePreviewStyle}/>
       }
       {mouseCoords &&
+      <>
         <div className = "highlight_box" style = {{...getHighlightBoxStyle(mouseCoords.x + mouseCoords.y * debugCanvas.current.width),border:'blue 1px dashed'}}/>
+        {settings.showCrosshairs &&
+          <Crosshairs></Crosshairs>
+        }
+      </>
       }
       <div className = "highlight_box" style = {{...getHighlightBoxStyle(activeCharIndex),animation: 'blinkBackground 1s infinite'}}/>
-      <div id = "main-canvas" className = "ascii_canvas" onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}/>
+      <div id = "main-canvas" className = "ascii_canvas" onMouseEnter = {setMinimap} onMouseMove = {settings.textSelectable?nullHandler:handleMouseMove} onMouseDown = {settings.textSelectable?nullHandler:handleMouseDown} onMouseUp = {settings.textSelectable?nullHandler:handleMouseUp} onMouseLeave = {settings.textSelectable?nullHandler:handleMouseLeave} style = {canvasStyle}/>
       <div className = "canvas_background" style = {backgroundStyle}>
         {addLineBreaksToText({data:createBackground({width:debugCanvas.current.width,height:debugCanvas.current.height}),width:debugCanvas.current.width+2,height:debugCanvas.current.height+2})}
       </div>
@@ -1700,6 +1829,7 @@ function App() {
       {/* controls */}
       <div className = "ui_container" style = {{display:'block'}}>
         {ascii_title}
+        <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_wire}</div>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {mouseCoords &&
           <div style = {{position:'absolute',right:'150px',top:'120px'}}>{`[${mouseCoords.x},${mouseCoords.y}]`}</div>
@@ -1708,9 +1838,9 @@ function App() {
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
         <div style = {{display:'flex',gap:'10px'}}>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'type'?'blue':null,color:settings.drawingMode == 'type'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'type'})}>type</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
-          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'line'?'blue':null,color:settings.drawingMode == 'line'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'line'})}>line</div>
-          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'stamp'?'blue':null,color:settings.drawingMode == 'stamp'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'stamp'})}>stamp</div>
+          <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'shape'?'blue':null,color:settings.drawingMode == 'shape'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'shape'})}>shape</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'fill'?'blue':null,color:settings.drawingMode == 'fill'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'fill'})}>fill</div>
           {/* clear canvas */}
           <div className = "ascii_button" id = "clear-canvas-button" onClick = {(e) => {clearCanvas();}}>clear</div>
@@ -1719,37 +1849,99 @@ function App() {
         <br></br>
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>settings</div>
         <div id = "tool-settings" style = {{display:'flex',flexDirection:'column'}}>
-          {settings.drawingMode == 'stamp' &&
+          {settings.drawingMode == 'type' && 
+            <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
+          }
+          {settings.drawingMode == 'shape' &&
+          <>
+            <div style = {{display:'flex',gap:'1ch'}}>
+              <div onClick = {()=>{setSettings({...settingsRef.current,shapeType:'line'});shapeData.current = {...shapeData.current,type:'line'};}} style = {{cursor:'pointer',color:settings.shapeType == 'line'?'white':'blue',background:settings.shapeType == 'line'?'blue':'transparent'}}>line</div>
+              <div onClick = {()=>{setSettings({...settingsRef.current,shapeType:'box'});shapeData.current = {...shapeData.current,type:'box'};}} style = {{cursor:'pointer',color:settings.shapeType == 'box'?'white':'blue',background:settings.shapeType == 'box'?'blue':'transparent'}}>box</div>
+              {/* <div onClick = {()=>{setSettings({...settingsRef.current,shapeType:'circle'});shapeData.current = {...shapeData.current,type:'circle'};}} style = {{cursor:'pointer',color:settings.shapeType == 'circle'?'white':'blue',background:settings.shapeType == 'circle'?'blue':'transparent'}}>circle</div> */}
+            </div>
+            <br></br>
+            {settings.shapeType == 'line' &&
+            <>
+              <Slider maxLength = {10} label = {'line thickness'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,brushSize:parseInt(val)});}} value = {settings.brushSize} defaultValue={settings.brushSize} min = {1} max = {10}></Slider>
+              <AsciiButton state = {settings.fillLineByDirection} title = {'use directional \'-\\|/)\' char'} onClick = {() => {setSettings({...settingsRef.current,fillLineByDirection:!settingsRef.current.fillLineByDirection})}}></AsciiButton>
+            </>
+            }
+            {settings.shapeType == 'box' &&
+            <>
+              <div style = {{marginLeft:'30px',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gridTemplateRows:'repeat(3,1fr)',width:'fit-content',height:'fit-content'}}>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.topL} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,topL:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.top} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,top:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.topR} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,topR:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.sideL} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,sideL:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.fill} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,fill:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.sideR} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,sideR:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.bottomL} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,bottomL:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.bottom} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,bottom:e.target.value}})}}></input>
+                <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'2px'}} defaultValue = {settings.boxCharacters.bottomR} onInput = {(e) => {setSettings({...settingsRef.current,boxCharacters:{...settingsRef.current.boxCharacters,bottomR:e.target.value}})}}></input>
+              </div>
+            </>
+            }
+            <br></br>
+          </>
+          }
+          {settings.drawingMode == 'fill' &&
+          <>
+          <div style = {{display:'flex',gap:'1ch'}}>
+            <div style = {{cursor:'pointer',color:settings.drawFromClipboard?'blue':'white',background:settings.drawFromClipboard?'transparent':'blue'}} onClick = {()=>{setSettings({...settingsRef.current,drawFromClipboard:false})}}>character</div>
+            <div style = {{cursor:'pointer',color:settings.drawFromClipboard?'white':'blue',background:settings.drawFromClipboard?'blue':'transparent'}} onClick = {()=>{setSettings({...settingsRef.current,drawFromClipboard:true})}}>clipboard</div>
+          </div>
+          {settings.drawFromClipboard &&
           <>
             {clipboard &&
+            <>
             <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}>
               <div style = {{...brushPreviewStyle,width:'fit-content',height:'fit-content'}}>
                 {getClipboardCanvas()}
               </div>
             </div>
+            <div style = {{cursor:'pointer',color:'white',background:'red',width:'fit-content'}} onClick = {()=>{setClipboard(undefined)}}>clear clipboard</div>
+            </>
             }
-            {
-              !clipboard &&
-              <div style = {{color:'red'}}>copy canvas area to create a stamp</div>
-            }
+            <div style = {{color:'red'}}>copy canvas area to create a stamp!</div>
           </>
           }
-          {settings.drawingMode == 'line' &&
-            <AsciiButton state = {settings.fillLineByDirection} title = {'use directional \'-\\|/)\' char'} onClick = {() => {setSettings({...settingsRef.current,fillLineByDirection:!settingsRef.current.fillLineByDirection})}}></AsciiButton>
+          </>
           }
           {settings.drawingMode == 'brush' &&
           <>
-            <Slider maxLength = {10} label = {'brush radius'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,brushSize:parseInt(val)});}} value = {settings.brushSize} defaultValue={settings.brushSize} min = {0} max = {10}></Slider>
+            <div style = {{display:'flex',gap:'1ch'}}>
+              <div style = {{cursor:'pointer',color:settings.drawFromClipboard?'blue':'white',background:settings.drawFromClipboard?'transparent':'blue'}} onClick = {()=>{setSettings({...settingsRef.current,drawFromClipboard:false})}}>character</div>
+              <div style = {{cursor:'pointer',color:settings.drawFromClipboard?'white':'blue',background:settings.drawFromClipboard?'blue':'transparent'}} onClick = {()=>{setSettings({...settingsRef.current,drawFromClipboard:true})}}>clipboard</div>
+            </div>
+            {!settings.drawFromClipboard &&
+            <>
+            <Slider maxLength = {10} label = {'brush size'} stepsize = {1} callback = {(val) => {setSettings({...settingsRef.current,brushSize:parseInt(val)});}} value = {settings.brushSize} defaultValue={settings.brushSize} min = {1} max = {10}></Slider>
             <AsciiButton state = {settings.useDynamicBrush} title = {'dynamic'} onClick = {() => {setSettings({...settingsRef.current,useDynamicBrush:!settingsRef.current.useDynamicBrush})}}></AsciiButton>
             <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}> 
-            <div style = {brushPreviewStyle}>
-              {addLineBreaksToText({data:getBrushCanvas(settings.brushSize),width:settings.brushSize*2+3,height:settings.brushSize*2+3})}
+              <div style = {brushPreviewStyle}>
+                {addLineBreaksToText({data:getBrushCanvas(settings.brushSize-1),width:(settings.brushSize-1)*2+3,height:(settings.brushSize-1)*2+3})}
+              </div>
             </div>
-        </div>
+            </>
+            }
+            {settings.drawFromClipboard &&
+            <>
+              {clipboard &&
+              <>
+                <div style = {{display:'flex',width:'150px',height:'fit-content',justifyContent:'center'}}>
+                  <div style = {{...brushPreviewStyle,width:'fit-content',height:'fit-content'}}>
+                    {getClipboardCanvas()}
+                  </div>
+                </div>
+                <div style = {{cursor:'pointer',color:'white',background:'red',width:'fit-content'}} onClick = {()=>{setClipboard(undefined)}}>clear clipboard</div>
+              </>
+              }
+              <div style = {{color:'red'}}>copy canvas area to create a stamp!</div>
+            </>
+            }
           </>
           }
         </div>
-        <br></br>
         {!(selectionBox.started || selectionBox.finished) && 
           <div className = 'help_text' style ={{color:'#ff0000'}}>(shift+drag to select an area)</div>
         }
@@ -1774,6 +1966,7 @@ function App() {
                                                           pasteClipboardContents();
                                                           }}>paste (cmd+v)</div>
         }
+        <br></br>
         {/* overlay white space */}
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>spaces are...</div>
         <div style = {{display:'flex',gap:'1ch'}}>
@@ -1784,6 +1977,23 @@ function App() {
         {/* canvas */}
         <br></br>
         <div className = "ui_header">*------- text -------*</div>
+        <br></br>
+        <div className = "dropdown_container">
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>font</div>
+        <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
+            onInput  = {(e) => {
+              const font = fontOptions.find((element) => element.title === e.target.value);
+              setSettings({...settingsRef.current,font:font.cssName});
+            }}>
+            <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
+        </select>
+        </div>
+        <br></br>
+        <Slider maxLength = {20} label = {'font size'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
+        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
+        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
+        <br></br>
+        <div className = "ui_header">*------ canvas ------*</div>
         <br></br>
         {/* canvas view window visualizer */}
         <div style = {{transition:'0.5s',opacity:mouseCoords?'100%':'0%',position:'fixed',right:'20px',top:'40px',zIndex:'-1',pointerEvents:'none'}}>
@@ -1833,26 +2043,24 @@ function App() {
         <br></br>
         <div style = {{display:'flex',gap:'1ch'}}>
           <DropZone title = {`choose background image`} callback = {loadBackgroundImage}></DropZone>
-          <div onClick = {() => {setBackgroundImage({...backgroundImage,shown:!backgroundImage.shown})}} style = {{cursor:'pointer',color:backgroundImage.shown?'blue':'white',backgroundColor:backgroundImage.shown?'transparent':'blue'}}>{backgroundImage.shown?'hide':'show'}</div>
+          {backgroundImage.imageSrc && 
+            <div onClick = {() => {setBackgroundImage({...backgroundImage,shown:!backgroundImage.shown})}} style = {{cursor:'pointer',color:backgroundImage.shown?'blue':'white',backgroundColor:backgroundImage.shown?'transparent':'blue'}}>{backgroundImage.shown?'hide':'show'}</div>
+          }
         </div>
-        {backgroundImage.imageSrc &&
-          <img src = {backgroundImage.imageSrc} style = {{maxWidth:'200px'}}></img>
+        {backgroundImage.imageSrc && 
+          <>
+          {backgroundImage.shown &&
+            <img src = {backgroundImage.imageSrc} style = {{maxWidth:'200px'}}></img>
+          }
+          <div style = {{color:'#555454ff',fontStyle:'italic'}}>resize to fit:</div>
+          <div style = {{display:'flex',gap:'1ch'}}>
+            <div style = {{cursor:'pointer',color:backgroundImage.fit == 'width' ? 'white':'blue',background:backgroundImage.fit == 'width' ? 'blue':'transparent'}} onClick = {()=>{setBackgroundImage({...backgroundImage,fit:'width'})}}>width</div>
+            <div style = {{cursor:'pointer',color:backgroundImage.fit == 'height' ? 'white':'blue',background:backgroundImage.fit == 'height' ? 'blue':'transparent'}} onClick = {()=>{setBackgroundImage({...backgroundImage,fit:'height'})}}>height</div>
+            <div style = {{cursor:'pointer',color:backgroundImage.fit == 'fill' ? 'white':'blue',background:backgroundImage.fit == 'fill' ? 'blue':'transparent'}} onClick = {()=>{setBackgroundImage({...backgroundImage,fit:'fill'})}}>fill</div>
+          </div>
+          <Slider maxLength = {10} label = {'opacity'} stepsize = {1} callback = {(val) => {setBackgroundImage({...backgroundImage,opacity:parseFloat(val/10)});}} value = {parseInt(backgroundImage.opacity*10)} defaultValue={parseInt(backgroundImage.opacity*10)} min = {0} max = {10}></Slider>
+          </>
         }
-        <br></br>
-        <div className = "dropdown_container">
-        <div style = {{color:'#555454ff',fontStyle:'italic'}}>font</div>
-        <select className = "dropdown" style = {{userSelect :'none'}} value = {settings.font.title}
-            onInput  = {(e) => {
-              const font = fontOptions.find((element) => element.title === e.target.value);
-              setSettings({...settingsRef.current,font:font.cssName});
-            }}>
-            <>{fontOptions.map((op,index) => (<option key = {index}>{op.title}</option>))}</>
-        </select>
-        </div>
-        <br></br>
-        <Slider maxLength = {20} label = {'font size'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,fontSize:val})}} defaultValue={settings.fontSize} min = {1} max = {20}></Slider>
-        <Slider maxLength = {20} label = {'horizontal spacing'} stepsize = {0.1} callback = {(val) => {setSettings({...settingsRef.current,textSpacing:val})}} defaultValue={settings.textSpacing} min = {-0.5} max = {4}></Slider>
-        <Slider maxLength = {20} label = {'vertical spacing'} stepsize = {0.01} callback = {(val) => {setSettings({...settingsRef.current,lineHeight:val})}} defaultValue={settings.lineHeight} min = {0.1} max = {2}></Slider>
         <br></br>
         {/* drop zone */}
         <div className = "ui_header">*------- render image -------*</div>
@@ -1861,14 +2069,19 @@ function App() {
         {imageRenderer.imageLoaded &&
         <>
           <img className = "image_preview" src = {imageRenderer.imageSrc}/>
-          <div className = "ascii_button" onClick = {(e) => {imageLayer.current = ''; setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null})}}>{'~Xx clear xX~'}</div>
+          <div className = "ascii_button" onClick = {(e) => {imageLayer.current.data = ''; updateCanvas(); setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null})}}>{'~Xx clear xX~'}</div>
           <div className = "ascii_button" id = "commit-image-button" onClick = {(e) => {
             debugCanvas.current = {width:debugCanvas.current.width,height:debugCanvas.current.height,data:overlayImageOnCanvas()};
             updateCanvas();
-            imageLayer.current = '';
+            imageLayer.current.data = '';
             setImageRenderer({...imageRendererRef.current,imageLoaded:false,imageSrc:null});}}>{'[commit to canvas]'}</div>
           <div className = "ascii_button" onClick = {(e) => {loadImageForRendering(imageRendererRef.current.imageSrc);}}>{'~rerender~'}</div>
-          <div className = "ascii_button" onClick = {(e) => {loadImageForRendering(imageRendererRef.current.imageSrc);}}>{`set canvas to same aspect ratio (${getCanvasDimensionsResizedToImage()})`}</div>
+          <div style = {{color:'#555454ff',fontStyle:'italic'}}>resize to fit:</div>
+          <div style = {{display:'flex',gap:'1ch'}}>
+            <div style = {{cursor:'pointer',color:imageRenderer.fit == 'width' ? 'white':'blue',background:imageRenderer.fit == 'width' ? 'blue':'transparent'}} onClick = {()=>{setImageRenderer({...imageRendererRef.current,fit:'width'})}}>width</div>
+            <div style = {{cursor:'pointer',color:imageRenderer.fit == 'height' ? 'white':'blue',background:imageRenderer.fit == 'height' ? 'blue':'transparent'}} onClick = {()=>{setImageRenderer({...imageRendererRef.current,fit:'height'})}}>height</div>
+            <div style = {{cursor:'pointer',color:imageRenderer.fit == 'fill' ? 'white':'blue',background:imageRenderer.fit == 'fill' ? 'blue':'transparent'}} onClick = {()=>{setImageRenderer({...imageRendererRef.current,fit:'fill'})}}>fill</div>
+          </div>
         </>
         }
         <DropZone title = {
@@ -1919,31 +2132,22 @@ function App() {
         <Slider maxLength = {20} label = {'image contrast'} stepsize = {0.1} callback = {(val) => {setImageRenderer({...imageRendererRef.current,contrast:val});}} defaultValue={imageRenderer.contrast} min = {0.0} max = {2.0}></Slider>
         </>
         }
-        {/* copy */}
-        <br></br>
-        <div className = "ui_header">*------- clipboard -------*</div>
-        <div style = {{position:'relative'}}>
-          {/* copy text to clipboard*/}
-          <div className = "ascii_button" onClick = {(e) => {copyText(debugCanvas.current,{escaped:false,linebreaks:true})}}>copy drawing to clipboard</div>
-          {/* <div className = "ascii_button">{'*'}</div> */}
-          <div className = "ascii_button" onClick = {(e) => {copyText(debugCanvas.current,{escaped:true,linebreaks:false})}}>{'*> as one line'}</div>
-          <div className = "ascii_button" onClick = {(e) => {copyText(debugCanvas.current,{escaped:true,linebreaks:false})}}>{'*> as escaped code'}</div>
-          {/* paste text to canvas from clipboard */}
-          <div className = "ascii_button" onClick = {(e) => {pasteClipboardContents()}}>paste drawing from clipboard</div>
-        </div>
+        {/* download */}
         <br></br>
         <div className = "ui_header">*------- download -------*</div>
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>as a...</div>
         <div style = {{display:'flex',flexDirection:'column',marginLeft:'10px'}}>
           <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:true,escaped:false,asConst:false})}}>plain .txt file</div>
-          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:false,escaped:true,asConst:true})}}>javascript const(for reusing in code)</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:true,escaped:true,asConst:false})}}>escaped .txt file w/line breaks</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:false,escaped:true,asConst:true})}}>single-line javascript const</div>
         </div>
         <br></br>
         <div className = "ui_header">*------- misc. settings -------*</div>
-        <AsciiButton onClick = {() => {setSettings({...settingsRef.current,advanceWhenCharacterEntered:!settingsRef.current.advanceWhenCharacterEntered})}} title = {'advance cursor when typing'} state = {settings.advanceWhenCharacterEntered}></AsciiButton>
+        <br></br>
+        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,showCrosshairs:!settingsRef.current.showCrosshairs})}} title = {'crosshairs'} state = {settings.showCrosshairs}></AsciiButton>
         <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <br></br>
-        <div style = {{color:'#555454ff',fontStyle:'italic'}}>border</div>
+        <div style = {{color:'#555454ff',fontStyle:'italic'}}>border design</div>
         <div style = {{display:'flex'}}>
           <div style = {{alignItems:'center',display:'flex',flexDirection:'column'}}>
             <input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'5px'}} defaultValue = {settings.cornerCharacter} onInput = {(e) => {setSettings({...settingsRef.current,cornerCharacter:e.target.value})}}></input>
@@ -1952,7 +2156,7 @@ function App() {
           <div style = {{alignItems:'center',display:'flex',flexDirection:'column'}}><input type = 'text' maxLength={1} className = "border_input" style = {{width:'1ch',border:'none',cursor:'pointer',padding:'5px'}} defaultValue = {settings.topCharacter} onInput = {(e) => {setSettings({...settingsRef.current,topCharacter:e.target.value})}}></input></div>
         </div>
         <br></br>
-        <Dropdown label = 'page# (previous drawings):' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
+        <Dropdown label = 'previous drawings:' callback = {loadPreset} options = {presets.map((n) => n.title)}></Dropdown>
         <br></br>
       </div>
     </div>
