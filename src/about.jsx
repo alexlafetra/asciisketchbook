@@ -47,7 +47,7 @@ export  const ascii_rocket = <div className = "ascii_graphics" style = {{fontSiz
 //          ssssssssssssssssssssssssssssss                kkkkkkkkk                     kkkkkkkkkkkk              eeeeeeeeeeeeeeeeeeeeeeeeeeeeee                      ttttttttttttttttt              ccccccccccccccccccccccccccc               hhhhhhhhhh                       hhhhhhhhhh            bbbbbbbbb  bbbbbbbbbbbbbbbbbbbbbbbb                           ooooooooooooooooooooooooooooo                          ooooooooooooooooooooooooooooo                   kkkkkkkkkk                    kkkkkkkkkkkkk`}
 // </div>
 
-export const ascii_title = <div className = "ascii_graphics" style = {{width:'fit-content',color:'#0000ff',whiteSpace:'pre',fontSize:'10px',textShadow:'10px 10px #ff00ff'}}>
+export const ascii_title = <div className = "ascii_graphics" style = {{width:'fit-content',color:'#0000ff',whiteSpace:'pre',fontSize:'5px',textShadow:'2px 2px #ff00ff'}}>
 {`         ddd\>                                                    "tt%                  '$$$   
     ,!   ddd\>        !       \`~:                                 ttt%                  @$$$   
 !ddddddddddd>  Yrrrrrrr/ kaaaaaaaaaa  www@   wwww8   wwwJ      Zttttttt  xxxx_ @xxx)  $$$$$$$ 

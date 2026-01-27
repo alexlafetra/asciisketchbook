@@ -118,7 +118,8 @@ function App() {
       bottom:'-',
       bottomR:'*'
     },
-    showCrosshairs:false
+    showCrosshairs:false,
+    showGrid:false
   });
 
   const settingsRef = useRef(settings);
@@ -177,7 +178,8 @@ function App() {
     height:null,
     shown:true,
     fit: 'width',
-    opacity: 0.8
+    opacity: 0.8,
+    type : 'image'
   });
   const [mouseCoords,setMouseCoords] = useState(null);
   const [asciiPalettePreset,setAsciiPalettePreset] = useState('full');
@@ -287,6 +289,30 @@ function App() {
       viewWidth : viewWidth,
       viewHeight : viewHeight
     });
+  }
+
+  function downloadCanvas(canvas,options){
+    let string = canvas.data;
+    if(options.linebreaks){
+      string = addLineBreaksToText(canvas);
+    }
+    else{
+      string = canvas.data;
+    }
+    if(options.escaped){
+      string = escapeTextData(string);
+    }
+    if(options.asConst){
+      string = `//sketch ${canvas.width} x ${canvas.height}\nconst sketch = {\n\twidth:${canvas.width},\n\theight:${canvas.height},\n\tdata:'${string}'\n};`;
+    }
+    const blob = new Blob([string],{type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "sketch.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
   }
 
   function map_range(value, low1, high1, low2, high2) {
@@ -509,6 +535,78 @@ function App() {
       }
     }
     return canvasString;
+  }
+
+  const redrawPlayer = useRef({
+    currentIndex : 0,
+    currentCanvas : undefined,
+    fallbackIndex : 0
+  });
+
+  function animateRedraw(){
+    if(redrawPlayer.current.playing)
+      redrawPlayer.current.playing = false;
+    else{
+      redrawPlayer.current = {
+        currentIndex : 0,
+        playing:true,
+        fallbackIndex : 0,
+        currentCanvas : {...debugCanvas.current,data:' '.padEnd(debugCanvas.current.data.length,' ')}
+      }
+      drawNext();
+    }
+  }
+
+  function drawNext(){
+    const targetChar = debugCanvas.current.data.charAt(redrawPlayer.current.currentIndex);
+    redrawPlayer.current.currentCanvas.data = writeCharacter(redrawPlayer.current.currentIndex,targetChar,redrawPlayer.current.currentCanvas);
+    const next = seekNextCharToDraw();
+    if(redrawPlayer.current.playing == false){
+      updateCanvas();
+      return;
+    }
+    if(next === false){
+      //restart
+      redrawPlayer.current = {
+        currentIndex : 0,
+        playing:true,
+        fallbackIndex : 0,
+        currentCanvas : {...debugCanvas.current,data:' '.padEnd(debugCanvas.current.data.length,' ')}
+      }
+    }
+    else{
+      redrawPlayer.current.currentIndex = next;
+    }
+    setActiveCharIndex(redrawPlayer.current.currentIndex);
+    setMouseCoords({x:redrawPlayer.current.currentIndex%redrawPlayer.current.currentCanvas.width,y:Math.floor(redrawPlayer.current.currentIndex/redrawPlayer.current.currentCanvas.width)});
+    setCurrentChar(targetChar);
+    setTimeout(drawNext,1);
+    updateCanvas(redrawPlayer.current.currentCanvas);
+  }
+
+  function seekNextCharToDraw(){
+    //search 8 adjacent spaces (up, topR, right, bottomR, down)
+    const coords = [{x:0,y:-1},{x:1,y:-1},{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:-1,y:1},{x:-1,y:0},{x:-1,y:-1}];
+    for(let coord of coords){
+      const index = redrawPlayer.current.currentIndex + coord.x + coord.y * redrawPlayer.current.currentCanvas.width;
+      if(index < debugCanvas.current.data.length - 1){
+        const currentChar = redrawPlayer.current.currentCanvas.data.charAt(index);
+        const targetChar = debugCanvas.current.data.charAt(index);
+        if(currentChar != targetChar)
+          return index;
+      }
+    }
+    //if you didn't find one, use the fallback index
+    let fallbackChar = redrawPlayer.current.currentCanvas.data.charAt(redrawPlayer.current.fallbackIndex);
+    let targetChar = debugCanvas.current.data.charAt(redrawPlayer.current.fallbackIndex);
+    while(fallbackChar == targetChar){
+      redrawPlayer.current.fallbackIndex++;
+      if(redrawPlayer.current.fallbackIndex >= debugCanvas.current.data.length)
+        return false;
+      fallbackChar = redrawPlayer.current.currentCanvas.data.charAt(redrawPlayer.current.fallbackIndex);
+      targetChar = debugCanvas.current.data.charAt(redrawPlayer.current.fallbackIndex);
+    }
+    return redrawPlayer.current.fallbackIndex;
   }
 
   function renderCanvas(canvas){
@@ -1369,23 +1467,39 @@ function App() {
     if(files.length === 1)
       files = [files[0]];
     const file = files[0];
+    console.log(file);
     //make sure there's a file here
     if(!(file === undefined)){
       //create a file reader object
       const reader = new FileReader();
       //attach a callback for when the FR is done opening the img
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = function(){
+        if(file.type.startsWith('image')){
+          const img = new Image();
+          img.onload = function(){
+            setBackgroundImage({
+              ...backgroundImage,
+              imageSrc:reader.result,
+              width:img.width,
+              height:img.height,
+              shown:true,
+              type : 'image'
+            });
+          }
+          img.src = reader.result;
+        }
+        else if(file.type.startsWith('video')){
+          console.log(file);
+          console.log(reader.result);
           setBackgroundImage({
             ...backgroundImage,
             imageSrc:reader.result,
-            width:img.width,
-            height:img.height,
-            shown:true
+            // width:.width,
+            // height:img.height,
+            shown:true,
+            type : 'video'
           });
         }
-        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     }
@@ -1592,28 +1706,40 @@ function App() {
     else return '*';
   }
 
-  async function downloadCanvas(options){
-    let string = debugCanvas.current.data;
-    if(options.linebreaks){
-      string = addLineBreaksToText(debugCanvas.current);
+  const Crosshairs = function(){
+    const common = {
+      lineHeight:settings.lineHeight,
+      fontSize:settings.fontSize+'px',
+      position:'absolute',
+      background:'#ffdd009d',
+      zIndex:'0'
     }
-    else{
-      string = debugCanvas.current.data;
+    const index = mouseCoords.x + mouseCoords.y * debugCanvas.current.width;
+    const leftOffset = `calc(${index%debugCanvas.current.width}ch + ${settings.textSpacing*(index%debugCanvas.current.width)}px)`;
+    const topOffset = `${Math.trunc(index/debugCanvas.current.width)*settings.lineHeight}em`;
+    return(
+      <>
+      {/* horizontal */}
+      <div style = {{...common,top:topOffset,left:'0ch',right:'0ch',height:'1em'}}></div>
+      {/* vertical */}
+      <div style = {{...common,top:'0em',left:leftOffset,width:'1ch',bottom:'0em'}}></div>
+      </>
+    )
+  }
+
+  function getBackgroundImageStyle(){
+    const dimensions = {
+      width : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'width') ? `calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)` : undefined,
+      height : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'height') ? `${(debugCanvas.current.height)*settings.lineHeight}em` : undefined,
     }
-    if(options.escaped){
-      string = escapeTextData(string);
-    }
-    if(options.asConst){
-      string = `//sketch ${debugCanvas.current.width} x ${debugCanvas.current.height}\nconst sketch = {\n\twidth:${debugCanvas.current.width},\n\theight:${debugCanvas.current.height},\n\tdata:'${string}'\n};`;
-    }
-    const blob = new Blob([string],{type:'text/plain'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = "sketch.txt";
-    a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+    return({
+      ...dimensions,
+      fontSize:settings.fontSize+'px',
+      lineHeight:settings.lineHeight,
+      opacity:backgroundImage.opacity,
+      imageRendering:'pixelated',
+      display:'block'
+    })
   }
  
   const asciiDisplayStyle = {
@@ -1691,18 +1817,19 @@ function App() {
   }
 
   const canvasContainerStyle = {
-    position:'absolute',
+    position:'sticky',
     lineHeight:settings.lineHeight,
     letterSpacing:settings.textSpacing+'px',
     whiteSpace: 'pre',
     fontFamily: settings.font,
+    top:'50px'
   }
 
   const pageContainerStyle = {
-    paddingTop:'200px',
+    paddingTop:'20px',
     paddingLeft:'20px',
     paddingRight:'20px',
-    paddingBottom:'100px',
+    paddingBottom:'20px',
     position:'fixed',
     top:'0px',
     left:'350px',
@@ -1736,75 +1863,58 @@ function App() {
   }
 
   const backgroundStyle = {
-    color:'#000000',
+    color:settings.textColor,
     backgroundColor:settings.backgroundColor,
     top:'-'+String(settings.lineHeight)+'em',
     fontSize:settings.fontSize+'px',
     width:`calc(${debugCanvas.current.width+2}ch + ${(debugCanvas.current.width+1)*settings.textSpacing}px)`,
   };
 
-  const Crosshairs = function(){
-    const common = {
-      lineHeight:settings.lineHeight,
-      fontSize:settings.fontSize+'px',
-      position:'absolute',
-      background:'#ffdd009d',
-      zIndex:'0'
-    }
-    const index = mouseCoords.x + mouseCoords.y * debugCanvas.current.width;
-    const leftOffset = `calc(${index%debugCanvas.current.width}ch + ${settings.textSpacing*(index%debugCanvas.current.width)}px)`;
-    const leftOffset2 = `calc(${(index+1)%debugCanvas.current.width}ch + ${settings.textSpacing*((index+1)%debugCanvas.current.width)}px)`;
-    const topOffset = `${Math.trunc(index/debugCanvas.current.width)*settings.lineHeight}em`;
-    const topOffset2 = `${Math.trunc((index+1)/debugCanvas.current.width)*settings.lineHeight}em`;
-    return(
-      <>
-      {/* horizontal */}
-      <div style = {{...common,top:topOffset,left:'0ch',right:'0ch',height:'1em'}}></div>
-      {/* vertical */}
-      <div style = {{...common,top:'0em',left:leftOffset,width:'1ch',bottom:'0em'}}></div>
-      </>
-    )
+  const gridStyle = {
+    pointerEvents:'none',
+    position:'absolute',
+    backgroundColor:settings.backgroundColor,
+    fontSize:settings.fontSize+'px',
+    lineHeight:settings.lineHeight,
+    letterSpacing:settings.textSpacing+'px',
+    height:`calc(${debugCanvas.current.height}*${settings.lineHeight}em)`,
+    width:`calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)`,
+    zIndex:5,
+
+    display: 'grid',
+    background:`
+      linear-gradient(#888888 1px, transparent 1px),
+      linear-gradient(90deg, #888888 1px, transparent 1px)`,
+    backgroundSize: `${100/debugCanvas.current.width}% ${100/debugCanvas.current.height}%`
   }
 
-  function getBackgroundImageStyle(){
-    const dimensions = {
-      width : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'width') ? `calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)` : undefined,
-      height : (backgroundImage.fit == 'fill' || backgroundImage.fit == 'height') ? `${(debugCanvas.current.height)*settings.lineHeight}em` : undefined,
-    }
-    return({
-      ...dimensions,
-      fontSize:settings.fontSize+'px',
-      lineHeight:settings.lineHeight,
-      opacity:backgroundImage.opacity,
-      imageRendering:'pixelated',
-      display:'block'
-    })
-  }
 
   return (
     <>
     <div style = {aboutTextStyle}>
       <div className = 'help_button' style = {{fontFamily:settings.font,textDecoration:'underline',cursor:'pointer',width:'fit-content',position:'fixed',top:'10px',right:'10px',backgroundColor:settings.showAbout?'blue':null,color:settings.showAbout?'white':null}} onClick = {(e) => {setSettings({...settingsRef.current,showAbout:!settingsRef.current.showAbout})}}>{settings.showAbout?'[Xx close xX]':'about'}</div>
       {settings.showAbout && <div className = "about_text">{aboutText}</div>}
-      {/* {!settings.showAbout && 
-      <div style = {{display:'block',color:'blue',fontFamily:settings.font,position:'fixed',right:'-100px',top:'200px',pointerEvents:'none'}}>
-        <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_rose}</div>
-        <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
-        <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_rocket}</div>
-      </div>
-      } */}
     </div>
     {/* scrollable box, holding the canvas+background+border elements */}
     <div className = "page_container" id = "canvas-view-window" onScroll = {(e) => {e.stopPropagation();setMinimap();}} style = {pageContainerStyle}>
       <div className = "canvas_container" style = {canvasContainerStyle}>
       {backgroundImage.imageSrc && backgroundImage.shown && 
         <div style = {{position:'absolute',overflow:'clip',display:'block',fontSize:settings.fontSize+'px',lineHeight:settings.lineHeight,width:`calc(${debugCanvas.current.width}ch + ${(debugCanvas.current.width)*settings.textSpacing}px)`,height:`${(debugCanvas.current.height)*settings.lineHeight}em`}}>
-          <img style = {getBackgroundImageStyle()} src = {backgroundImage.imageSrc}></img>
+          {backgroundImage.type == 'image' && 
+              <img style = {getBackgroundImageStyle()} src = {backgroundImage.imageSrc}></img>
+          }
+          {backgroundImage.type == 'video' &&
+            <video src = {backgroundImage.imageSrc} style = {getBackgroundImageStyle()} autoPlay muted = {true} loop = {true}></video>
+          }
         </div>
       }
       {/* selection box */}
       {(selectionBox.started||selectionBox.finished) &&
         <div className = "selection_box" style = {selectionBoxStyle}/>
+      }
+      {settings.showGrid &&
+        <div className = "canvas_overlay_grid" style = {gridStyle}>
+        </div>
       }
       {/* canvas resizing preview box */}
       {(canvasDimensionSliders.width != debugCanvas.current.width || canvasDimensionSliders.height != debugCanvas.current.height) &&
@@ -1832,11 +1942,12 @@ function App() {
         <div style = {{transform:'rotate(90deg)',zIndex:'-1',pointerEvents:'none'}}>{ascii_wire}</div>
         <div className = 'ascii_display' style = {asciiDisplayStyle} >{currentChar === ' '?'{ }':currentChar}</div>
         {mouseCoords &&
-          <div style = {{position:'absolute',right:'150px',top:'120px'}}>{`[${mouseCoords.x},${mouseCoords.y}]`}</div>
+          <div style = {{position:'absolute',right:'150px',top:'60px'}}>{`[${mouseCoords.x},${mouseCoords.y}]`}</div>
         }
         
         {/* tools */}
         <div className = "ui_header">*------- tools -------*</div>
+        <br></br>
         <div style = {{display:'flex',gap:'10px'}}>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'type'?'blue':null,color:settings.drawingMode == 'type'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'type'})}>type</div>
           <div className = 'ascii_button' style = {{backgroundColor:settings.drawingMode == 'brush'?'blue':null,color:settings.drawingMode == 'brush'?'white':null}} onClick = {()=>setSettings({...settingsRef.current,drawingMode:'brush'})}>brush</div>
@@ -2047,10 +2158,13 @@ function App() {
             <div onClick = {() => {setBackgroundImage({...backgroundImage,shown:!backgroundImage.shown})}} style = {{cursor:'pointer',color:backgroundImage.shown?'blue':'white',backgroundColor:backgroundImage.shown?'transparent':'blue'}}>{backgroundImage.shown?'hide':'show'}</div>
           }
         </div>
-        {backgroundImage.imageSrc && 
+        {backgroundImage.imageSrc && backgroundImage.shown &&
           <>
-          {backgroundImage.shown &&
-            <img src = {backgroundImage.imageSrc} style = {{maxWidth:'200px'}}></img>
+          {backgroundImage.type == 'image' &&
+          <img src = {backgroundImage.imageSrc} style = {{maxWidth:'200px'}}></img>
+          }
+          {backgroundImage.type == 'video' &&
+            <video src = {backgroundImage.imageSrc} autoPlay muted = {true} loop = {true} style = {{maxWidth:'200px'}}></video>
           }
           <div style = {{color:'#555454ff',fontStyle:'italic'}}>resize to fit:</div>
           <div style = {{display:'flex',gap:'1ch'}}>
@@ -2137,14 +2251,16 @@ function App() {
         <div className = "ui_header">*------- download -------*</div>
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>as a...</div>
         <div style = {{display:'flex',flexDirection:'column',marginLeft:'10px'}}>
-          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:true,escaped:false,asConst:false})}}>plain .txt file</div>
-          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:true,escaped:true,asConst:false})}}>escaped .txt file w/line breaks</div>
-          <div className = "ascii_button" onClick = {(e) => {downloadCanvas({linebreaks:false,escaped:true,asConst:true})}}>single-line javascript const</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas(debugCanvas.current,{linebreaks:true,escaped:false,asConst:false})}}>plain .txt file</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas(debugCanvas.current,{linebreaks:true,escaped:true,asConst:false})}}>escaped .txt file w/line breaks</div>
+          <div className = "ascii_button" onClick = {(e) => {downloadCanvas(debugCanvas.current,{linebreaks:false,escaped:true,asConst:true})}}>single-line javascript const</div>
         </div>
         <br></br>
         <div className = "ui_header">*------- misc. settings -------*</div>
         <br></br>
+        <div className = 'ascii_button' onClick = {animateRedraw} >play back as animation</div>
         <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,showCrosshairs:!settingsRef.current.showCrosshairs})}} title = {'crosshairs'} state = {settings.showCrosshairs}></AsciiButton>
+        <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,showGrid:!settingsRef.current.showGrid})}} title = {'grid'} state = {settings.showGrid}></AsciiButton>
         <AsciiButton  onClick = {() => {setSettings({...settingsRef.current,textSelectable:!settingsRef.current.textSelectable})}} title = {'freeze text'} state = {settings.textSelectable}></AsciiButton>
         <br></br>
         <div style = {{color:'#555454ff',fontStyle:'italic'}}>border design</div>

@@ -42,7 +42,7 @@ export const DropZone = ({title,callback}) => {
             );
             if (fileItems.length > 0) {
                 e.preventDefault();
-                if (fileItems.some((item) => item.type.startsWith("image/"))) {
+                if (fileItems.some((item) => (item.type.startsWith("image/") || item.type.startsWith("video/")))) {
                     e.dataTransfer.dropEffect = "copy";
                 } else {
                     e.dataTransfer.dropEffect = "none";
@@ -50,7 +50,7 @@ export const DropZone = ({title,callback}) => {
             }
         }}>
           {title}
-          <input type="file" className="file-input" multiple accept="image/*" style = {{display:'none'}} onInput={(e) => {
+          <input type="file" className="file-input" multiple accept="image/* video/*" style = {{display:'none'}} onInput={(e) => {
             console.log(e.target.files[0]);
             callback(e.target.files);
           }} />
